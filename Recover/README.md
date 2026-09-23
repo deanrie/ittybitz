@@ -1,8 +1,8 @@
 # 🪶 IttyBitz Recovery
 
-### ⬇️ [**Download the Recovery tool**](https://github.com/seQRets/ittybitz/releases/download/v3.0.5/ittybitz-recovery.html)
+### ⬇️ [**Download the Recovery tool**](https://github.com/seQRets/ittybitz/releases/download/v3.0.6/ittybitz-recovery.html)
 
-*Saves `ittybitz-recovery.html` to your computer · 26 KB · no installation · works offline forever*
+*Saves `ittybitz-recovery.html` to your computer · 27 KB · no installation · works offline forever*
 
 Or **[open it in your browser](https://ittybitz.app/ittybitz-recovery.html)** to use it right now without saving — but a copy on your own disk is the whole point.
 
