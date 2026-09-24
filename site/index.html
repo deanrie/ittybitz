@@ -15,7 +15,7 @@
      canvas and downloads use blob:/data:, none of which are network fetches.
      Nothing here can phone home. -->
 <meta http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'sha256-4GSOHG1PWgpqNwON0DpmpOBDoMdMXoBzQI2KhDuK9js=' 'sha256-SJVUXJNlOay+2TG0PE+o+T46Wt7Qxe1B1XpRTxfVTCE=' 'sha256-W+IzleLCL30nXjyiCRp8Rl3j2GFDMC9KAJFnnygxQ8c=' 'sha256-XlgOklfvkE1YTG+BSxN2kJFwnn+L4EhXLVb01Ma4YsM=' 'sha256-warePkCKxDCQmM06CwyIWWjsoALPbljC3laB3eueoq0='; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; font-src 'none'; form-action 'none'; base-uri 'none'">
+      content="default-src 'none'; script-src 'sha256-4GSOHG1PWgpqNwON0DpmpOBDoMdMXoBzQI2KhDuK9js=' 'sha256-SJVUXJNlOay+2TG0PE+o+T46Wt7Qxe1B1XpRTxfVTCE=' 'sha256-W+IzleLCL30nXjyiCRp8Rl3j2GFDMC9KAJFnnygxQ8c=' 'sha256-XlgOklfvkE1YTG+BSxN2kJFwnn+L4EhXLVb01Ma4YsM=' 'sha256-NYQ0hM7SpKRLIsnbuTkqUcaQqX7Tt/p2OBOYLmZTRVY='; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; font-src 'none'; form-action 'none'; base-uri 'none'">
 <!--
   ═══════════════════════════════════════════════════════════════════════
   IttyBitz — single-file client-side encryption
@@ -458,7 +458,7 @@
       <a class="accent" href="https://github.com/seQRets/ittybitz/releases/latest/download/ittybitz.html" title="Download this app as one file — the exact published build, verifiable by checksum">Download app</a>
       <a class="accent" href="./ittybitz-recovery.html" title="Standalone offline decryption tool">Recovery tool</a>
       <a class="accent" href="https://github.com/seQRets/ittybitz" target="_blank" rel="noopener noreferrer">GitHub</a>
-      <span id="version">v3.0.6 🦕 Iguanodon</span>
+      <span id="version">v3.0.7 🦕 Iguanodon</span>
     </div>
   </footer>
 </div>
@@ -3212,7 +3212,7 @@ async function masterFingerprint(words) { return fingerprintOfSeed(await bip39Se
   var inputType = 'file';     // 'file' | 'text'
   var mainFile = null, keyFile = null;
   var useKeyFile = false;
-  var showTextSecret = true;  // encrypt-side blur toggle
+  var showTextSecret = false; // encrypt-side reveal toggle: the secret is blurred as soon as it has content
   var showDecrypted = false;  // decrypt-side reveal toggle
   var clipboardTimer = null;
   var seedTimer = null;
@@ -3302,16 +3302,26 @@ async function masterFingerprint(words) { return fingerprintOfSeed(await bip39Se
   }
   function clearStatus() { var s = $('status'); s.className = 'status'; s.textContent = ''; }
 
+  // Clipboard auto-clear, without ever reading the clipboard. Reading would
+  // need the clipboard-read permission, which browsers surface as a prompt a
+  // minute after the copy, with no visible cause — alarming in a privacy tool.
+  // Instead: if the page has stayed focused and nothing else was copied from
+  // it since our write, the clipboard can only still hold what we put there,
+  // so it is safe to overwrite. If either happened, leave it alone.
+  var clipboardStale = false;
+  window.addEventListener('blur', function () { clipboardStale = true; });
+  document.addEventListener('copy', function () { clipboardStale = true; });
+  document.addEventListener('cut', function () { clipboardStale = true; });
   function copyText(text) {
     if (!text) return;
     navigator.clipboard.writeText(text).then(function () {
-      status('ok', 'Copied to clipboard. Auto-clear will be attempted in 60 seconds (may not work if the tab loses focus).');
+      clipboardStale = false;
+      status('ok', 'Copied to clipboard. It will be cleared in 60 seconds if you stay on this page. (The clipboard is never read.)');
       if (clipboardTimer) clearTimeout(clipboardTimer);
       clipboardTimer = setTimeout(function () {
-        navigator.clipboard.readText().then(function (cur) {
-          if (cur === text) navigator.clipboard.writeText('');
-        }).catch(function () {});
         clipboardTimer = null;
+        if (clipboardStale) return; // you may have copied something else — not ours to clear
+        navigator.clipboard.writeText('').catch(function () {});
       }, 60000);
     }).catch(function () { status('err', 'Failed to copy to clipboard.'); });
   }
@@ -3415,6 +3425,7 @@ async function masterFingerprint(words) { return fingerprintOfSeed(await bip39Se
     clearMainZone(); clearKeyZone();
     $('p').value = '';
     $('t').value = '';
+    showTextSecret = false; // a reveal never carries over to the next secret
     $('t').classList.remove('ok-border', 'bad-border');
     encFpToken++; hideFp('enc');
     refreshPasswordButtons();
@@ -3488,9 +3499,12 @@ async function masterFingerprint(words) { return fingerprintOfSeed(await bip39Se
   $('t-copy').onclick = function () { copyText($('t').value); };
 
   $('t').addEventListener('input', function () {
+    var val = $('t').value;
+    // Every secret starts hidden: once the field is emptied, the next thing
+    // typed or pasted is blurred again even if the last one was revealed.
+    if (!val) { showTextSecret = false; updateSecretToggle(); }
     updateTextBlur();
     if (mode !== 'encrypt') return;
-    var val = $('t').value;
     if (seedTimer) clearTimeout(seedTimer);
     hideFp('enc');
     var token = ++encFpToken; // invalidate any in-flight fingerprint
@@ -3674,6 +3688,7 @@ async function masterFingerprint(words) { return fingerprintOfSeed(await bip39Se
           var b64 = bytesToB64(ct);
           showResult(b64, false);
           $('t').value = ''; $('t').classList.remove('ok-border', 'bad-border');
+          encFpToken++; hideFp('enc'); // the secret is gone from the field; its fingerprint goes with it
           if (fitsQR(b64)) {
             qrState = { getValue: function () { return b64; }, numeric: false, kind: 'plain' };
             $('out-qr').style.display = '';

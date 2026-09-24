@@ -89,7 +89,7 @@
   var inputType = 'file';     // 'file' | 'text'
   var mainFile = null, keyFile = null;
   var useKeyFile = false;
-  var showTextSecret = true;  // encrypt-side blur toggle
+  var showTextSecret = false; // encrypt-side reveal toggle: the secret is blurred as soon as it has content
   var showDecrypted = false;  // decrypt-side reveal toggle
   var clipboardTimer = null;
   var seedTimer = null;
@@ -179,16 +179,26 @@
   }
   function clearStatus() { var s = $('status'); s.className = 'status'; s.textContent = ''; }
 
+  // Clipboard auto-clear, without ever reading the clipboard. Reading would
+  // need the clipboard-read permission, which browsers surface as a prompt a
+  // minute after the copy, with no visible cause — alarming in a privacy tool.
+  // Instead: if the page has stayed focused and nothing else was copied from
+  // it since our write, the clipboard can only still hold what we put there,
+  // so it is safe to overwrite. If either happened, leave it alone.
+  var clipboardStale = false;
+  window.addEventListener('blur', function () { clipboardStale = true; });
+  document.addEventListener('copy', function () { clipboardStale = true; });
+  document.addEventListener('cut', function () { clipboardStale = true; });
   function copyText(text) {
     if (!text) return;
     navigator.clipboard.writeText(text).then(function () {
-      status('ok', 'Copied to clipboard. Auto-clear will be attempted in 60 seconds (may not work if the tab loses focus).');
+      clipboardStale = false;
+      status('ok', 'Copied to clipboard. It will be cleared in 60 seconds if you stay on this page. (The clipboard is never read.)');
       if (clipboardTimer) clearTimeout(clipboardTimer);
       clipboardTimer = setTimeout(function () {
-        navigator.clipboard.readText().then(function (cur) {
-          if (cur === text) navigator.clipboard.writeText('');
-        }).catch(function () {});
         clipboardTimer = null;
+        if (clipboardStale) return; // you may have copied something else — not ours to clear
+        navigator.clipboard.writeText('').catch(function () {});
       }, 60000);
     }).catch(function () { status('err', 'Failed to copy to clipboard.'); });
   }
@@ -292,6 +302,7 @@
     clearMainZone(); clearKeyZone();
     $('p').value = '';
     $('t').value = '';
+    showTextSecret = false; // a reveal never carries over to the next secret
     $('t').classList.remove('ok-border', 'bad-border');
     encFpToken++; hideFp('enc');
     refreshPasswordButtons();
@@ -365,9 +376,12 @@
   $('t-copy').onclick = function () { copyText($('t').value); };
 
   $('t').addEventListener('input', function () {
+    var val = $('t').value;
+    // Every secret starts hidden: once the field is emptied, the next thing
+    // typed or pasted is blurred again even if the last one was revealed.
+    if (!val) { showTextSecret = false; updateSecretToggle(); }
     updateTextBlur();
     if (mode !== 'encrypt') return;
-    var val = $('t').value;
     if (seedTimer) clearTimeout(seedTimer);
     hideFp('enc');
     var token = ++encFpToken; // invalidate any in-flight fingerprint
@@ -551,6 +565,7 @@
           var b64 = bytesToB64(ct);
           showResult(b64, false);
           $('t').value = ''; $('t').classList.remove('ok-border', 'bad-border');
+          encFpToken++; hideFp('enc'); // the secret is gone from the field; its fingerprint goes with it
           if (fitsQR(b64)) {
             qrState = { getValue: function () { return b64; }, numeric: false, kind: 'plain' };
             $('out-qr').style.display = '';
