@@ -8,6 +8,7 @@ Every IttyBitz release, newest first. Full notes for each version live in [`docs
 
 | Version | Date | Summary |
 |---|---|---|
+| [**3.0.11** 🦕 Iguanodon](docs/releases/v3.0.11.md) | 2026-09-26 | The Recovery tool's subtitle carries a **Download this tool** link, visible before scrolling. |
 | [**3.0.10** 🦕 Iguanodon](docs/releases/v3.0.10.md) | 2026-09-26 | The live Recovery tool offers its own download (**Download this tool** in its footer), and its version label now tracks the app release instead of the file's own version. |
 | [**3.0.9** 🦕 Iguanodon](docs/releases/v3.0.9.md) | 2026-09-26 | Footer: **Recovery tool** opens the live tool again (the hero line and feature card keep the download); **Download app** renamed **Download IttyBitz app**. Recovery tool unchanged. |
 | [**3.0.8** 🦕 Iguanodon](docs/releases/v3.0.8.md) | 2026-09-26 | The Recovery tool is now explained on the page (a **Recoverable without us** feature card and a hero line) and the footer link downloads the release asset instead of opening the live recovery page. Recovery tool unchanged. |

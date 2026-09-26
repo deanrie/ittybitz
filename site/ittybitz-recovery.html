@@ -90,6 +90,8 @@
   }
   @media (min-width: 640px) { h1 { font-size: 56px; } }
   .sub { color: var(--muted-foreground); font-size: 17px; line-height: 1.35; margin: 1rem auto 0; max-width: 30rem; }
+  .sub a { color: var(--accent); text-decoration: none; }
+  .sub a:hover { text-decoration: underline; }
   .badge {
     display: inline-block; font-size: .72rem; padding: .2rem .6rem; border-radius: 20px;
     background: rgba(44, 221, 150, .08); border: 1px solid rgba(44, 221, 150, .3);
@@ -205,7 +207,8 @@
       <span>IttyBitz</span>
     </div>
     <h1>IttyBitz Recovery</h1>
-    <p class="sub">Standalone offline decryption.<br>No network. No installation. No dependencies.</p>
+    <p class="sub">Standalone offline decryption.<br>No network. No installation. No dependencies.<br>
+      <a href="https://github.com/seQRets/ittybitz/releases/latest/download/ittybitz-recovery.html" title="Download this file (27 KB) and keep it next to your encrypted data">Download this tool</a> and keep it with your encrypted data.</p>
     <span class="badge" id="netbadge">checking&#8230;</span>
   </header>
 
@@ -281,7 +284,7 @@
     <!-- Tracks the IttyBitz release, so this page and the app always show the
          same number. Every release re-stamps this file; SHA256SUMS.txt for
          the release named here is the checksum to verify a copy against. -->
-    <span id="recovery-version">IttyBitz Recovery v3.0.10</span>
+    <span id="recovery-version">IttyBitz Recovery v3.0.11</span>
   </p>
 </div>
 <script id="ittybitz-decrypt-core">
