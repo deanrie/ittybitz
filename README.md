@@ -31,7 +31,7 @@ Here’s what you can do with IttyBitz:
 - **File & text support**: encrypt and decrypt both files and text snippets.
 - **QR code sharing**: easily share encrypted text snippets via a downloadable QR code.
 - **Hardware-wallet SeedQR export**: when decrypted text is a valid BIP-39 seed phrase, IttyBitz auto-detects it and can display a **Standard SeedQR** for direct import into hardware wallets (Coldcard, SeedSigner, Sparrow, Specter, Krux, Keystone, Jade). Any other decrypted text can be shown as a plain QR. Both are blurred until you deliberately reveal them.
-- **One self-contained file**: the entire app is a single HTML file — no dependencies, no build, no service worker. Save it (or *File → Save Page As…* from [ittybitz.app](https://ittybitz.app)) and it runs offline forever, on an air-gapped machine, from a USB stick, in twenty years.
+- **One self-contained file**: the entire app is a single HTML file — no dependencies, no build, no service worker. Save it (or *File → Save Page As…* from [ittybitz.app](https://ittybitz.app)) and it runs offline, on an air-gapped machine, from a USB stick, in twenty years.
 - **Privacy-focused UI**: the secret text field offers a show/hide blur toggle to prevent shoulder-surfing during input, and decrypted output is blurred by default until you tap to reveal.
 - **Clipboard auto-clear**: copied passwords and output are wiped from the clipboard after 60 seconds. The clipboard is never read: if you leave the page or copy something else in the meantime, it is left alone.
 - **Backward-compatible file format**: encrypted payloads include an `IBTZ` version header so the app can evolve without breaking old files. Anything encrypted with prior versions still decrypts identically.

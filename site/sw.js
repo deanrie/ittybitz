@@ -27,7 +27,7 @@ const MIGRATION_HTML =
   '<h1 style="font-size:1.5rem;margin:0 0 .75rem">IttyBitz has moved</h1>' +
   '<p style="color:#a1a1aa;margin:0 0 1.25rem">For offline use, IttyBitz is now a single HTML file you download once and keep — ' +
   "no install needed. You're offline right now: reconnect, download the file below, then double-click it to open " +
-  'IttyBitz right in your browser — no separate app, works offline anywhere, forever.</p>' +
+  'IttyBitz right in your browser — no separate app, works offline anywhere.</p>' +
   '<a href="https://github.com/seQRets/ittybitz/releases/latest/download/ittybitz.html" ' +
   'style="display:inline-block;background:linear-gradient(to bottom right,#fbbf24,#f97316,#ef4444);color:#000;' +
   'font-weight:600;text-decoration:none;padding:.7rem 1.25rem;border-radius:12px">Download IttyBitz</a>' +
