@@ -238,6 +238,8 @@
   .feat .fi svg { width: 16px; height: 16px; }
   .feat b { font-size: 14px; font-weight: 600; }
   .feat p { margin: .25rem 0 0; font-size: 12px; line-height: 1.5; color: var(--muted-foreground); }
+  .feat a { display: inline-block; margin-top: .5rem; font-size: 12px; font-weight: 600; color: var(--accent); text-decoration: none; }
+  .feat a:hover { text-decoration: underline; }
 
   /* Footer */
   footer { max-width: 680px; margin: 2rem auto 0; padding-top: 1.25rem; border-top: 1px solid hsla(0,0%,100%,0.06); display: flex; flex-wrap: wrap; gap: .75rem 1.25rem; align-items: center; justify-content: space-between; font-size: 12px; color: var(--muted-foreground); }
@@ -322,7 +324,8 @@
     <h1>IttyBitz</h1>
     <p class="tagline">Encrypt everything. Trust nothing.</p>
     <p class="sub">Client-side encryption that never leaves your browser.
-      <a href="https://github.com/seQRets/ittybitz" target="_blank" rel="noopener noreferrer">Open source</a>. No accounts. No servers.</p>
+      <a href="https://github.com/seQRets/ittybitz" target="_blank" rel="noopener noreferrer">Open source</a>. No accounts. No servers.
+      <a href="https://github.com/seQRets/ittybitz/releases/latest/download/ittybitz-recovery.html" title="Download the standalone recovery tool">Recoverable without us</a>.</p>
   </div>
 
   <section class="card">
@@ -437,8 +440,9 @@
       <b>100% Client-Side</b><p>Nothing leaves your browser. No servers, no uploads, no tracking.</p>
     </div>
     <div class="feat">
-      <div class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 21a8 8 0 0 0-16 0"/><circle cx="10" cy="8" r="5"/><path d="m17 3 4 4-4 4"/></svg></div>
-      <b>No Accounts</b><p>No sign-ups or logins. Just encrypt and go.</p>
+      <div class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/><circle cx="12" cy="12" r="4"/></svg></div>
+      <b>Recoverable without us</b><p>A 27 KB decrypt-only file opens your data even if this site, this project and its author are gone. Save it next to your encrypted files.</p>
+      <a href="https://github.com/seQRets/ittybitz/releases/latest/download/ittybitz-recovery.html" title="Download the standalone recovery tool">Download the recovery tool</a>
     </div>
   </div>
 
@@ -456,9 +460,12 @@
            artifact, byte-identical to the page being served, and verifiable. The
            dismissible banners link here too; this is the permanent home. -->
       <a class="accent" href="https://github.com/seQRets/ittybitz/releases/latest/download/ittybitz.html" title="Download this app as one file — the exact published build, verifiable by checksum">Download app</a>
-      <a class="accent" href="./ittybitz-recovery.html" title="Standalone offline decryption tool">Recovery tool</a>
+      <!-- Also the release asset, for the same reason: someone using the live
+           app has no use for the live recovery page. What they need is the
+           file, saved next to their encrypted data. -->
+      <a class="accent" href="https://github.com/seQRets/ittybitz/releases/latest/download/ittybitz-recovery.html" title="Download the standalone recovery tool — one offline file that decrypts your data even if this site is gone">Download recovery tool</a>
       <a class="accent" href="https://github.com/seQRets/ittybitz" target="_blank" rel="noopener noreferrer">GitHub</a>
-      <span id="version">v3.0.7 🦕 Iguanodon</span>
+      <span id="version">v3.0.8 🦕 Iguanodon</span>
     </div>
   </footer>
 </div>
