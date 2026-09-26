@@ -271,12 +271,17 @@
     Decryption runs entirely in this page using your browser's built-in Web Crypto.<br>
     Nothing is uploaded, logged, or stored. Works with the network disconnected.<br>
     Source &amp; technical reference: <a href="https://github.com/seQRets/ittybitz" target="_blank" rel="noopener noreferrer">github.com/seQRets/ittybitz</a><br>
-    <!-- The version of THIS FILE, not of the app. Bump it only in a release
-         that changes this file, so a label identifies the file's contents:
-         two copies with the same label are byte-identical, and a copy found
-         on an old USB stick can be checked against SHA256SUMS.txt for that
-         release. Releases that leave this file alone leave the label alone. -->
-    <span id="recovery-version">IttyBitz Recovery v3.0.6</span>
+    <!-- For people reading this page online: the whole point is a copy on
+         their own disk, next to their encrypted data. The link serves the
+         release asset, byte-identical to this page and verifiable by
+         checksum. Offline the link simply does nothing, which is fine —
+         anyone offline already has the file. -->
+    <a href="https://github.com/seQRets/ittybitz/releases/latest/download/ittybitz-recovery.html" title="Download this file (27 KB) and keep it next to your encrypted data">Download this tool</a>
+    and keep it next to your encrypted data.<br>
+    <!-- Tracks the IttyBitz release, so this page and the app always show the
+         same number. Every release re-stamps this file; SHA256SUMS.txt for
+         the release named here is the checksum to verify a copy against. -->
+    <span id="recovery-version">IttyBitz Recovery v3.0.10</span>
   </p>
 </div>
 <script id="ittybitz-decrypt-core">
