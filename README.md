@@ -177,11 +177,14 @@ You never need this to *use* IttyBitz — the shipped [`site/index.html`](site/i
 npm run build              # reassemble site/index.html, pin CSP hashes, regenerate SHA256SUMS.txt
 npm run test:crypto        # crypto regression gate (zero dependencies)
 npm run update-csp-hashes  # re-pin CSP hashes + SHA256SUMS after editing a shipped HTML file
+npm run test:ui            # 60 checks on both shipped pages in headless Chrome (zero dependencies)
 ```
 
 `build` concatenates the hand-written page, the vendored [`qrcode-generator`](https://github.com/kazuhikoarase/qrcode-generator) (MIT), the DOM-free crypto core, and a BIP-39 core generated from `src/lib/bip39.ts` (so the wordlist can never drift), then runs `update-csp-hashes` to lock each inline `<script>` block into the `Content-Security-Policy` as a `'sha256-…'` source and regenerate `SHA256SUMS.txt`. `test:crypto` proves the assembled file both decrypts every historical ciphertext **and** round-trips against the frozen reference implementation in [`src/lib/crypto.ts`](src/lib/crypto.ts) — in both directions, with and without key files.
 
 > **After editing `site/ittybitz-recovery.html` by hand (or anything under `scripts/build/`), run `npm run update-csp-hashes` before committing.** It recomputes the inline-script hashes, rewrites both files' CSP meta tags in place, and regenerates `SHA256SUMS.txt`. It is idempotent — a second run with unchanged scripts writes nothing. Skipping it after a change would leave a stale hash in the CSP and the browser would refuse to run the edited script.
+
+`test:ui` drives both shipped pages in headless Chrome through the real controls, with `src/lib/crypto.ts` in Node as the independent judge: the pages load under their own hash-pinned CSP (recomputed here, not trusted) over `file://` and http with no violation, exception or request; text encrypted through the UI opens under `crypto.ts` and `crypto.ts` ciphertext decrypts through the UI; a weak password is refused, the password and secret are cleared afterwards, decrypted text and the SeedQR are blurred until revealed; a v1.0 headerless ciphertext decrypts and its BIP-39 seed is recognised with the right master fingerprint; Copy arms a 60-second clear that is skipped if anything else was copied; the recovery tool decrypts a real fixture and carries no encrypt function; both pages refuse a cross-origin frame; nothing scrolls sideways at 320–1440px. Every check was confirmed to fail against deliberately broken code (weak password accepted, password left in the field, output unblurred, clipboard clear ignoring a foreign copy, frame guard removed, stale CSP pin) before being kept. Needs Node 22.6+ and Chrome; set `CHROME` if the binary is somewhere unusual.
 
 There are **no runtime or build dependencies**: `node` (22.6+, for native TypeScript stripping) and Python 3 (only for `npm run dev`'s static server) are all that is used.
 

@@ -8,6 +8,7 @@
     "build": "node scripts/build-app.mjs && node scripts/update-csp-hashes.mjs",
     "update-csp-hashes": "node scripts/update-csp-hashes.mjs",
     "test:crypto": "node scripts/crypto-regression.mts",
+    "test:ui": "node --no-warnings scripts/verify-ui.mts",
     "dev": "cd site && python3 -m http.server 9002"
   }
 }
