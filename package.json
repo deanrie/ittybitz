@@ -3,11 +3,13 @@
   "version": "3.0.11",
   "private": true,
   "description": "Single-file, client-side AES-256 encryption. No dependencies, no build for users, no network.",
-  "license": "SEE LICENSE IN LICENSE",
+  "license": "GPL-3.0-only",
   "scripts": {
     "build": "node scripts/build-app.mjs && node scripts/update-csp-hashes.mjs",
     "update-csp-hashes": "node scripts/update-csp-hashes.mjs",
     "test:crypto": "node scripts/crypto-regression.mts",
+    "fixtures:add": "node scripts/add-release-fixtures.mts",
+    "fixtures:check": "node scripts/add-release-fixtures.mts --check",
     "dev": "cd site && python3 -m http.server 9002"
   }
 }
