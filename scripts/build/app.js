@@ -109,8 +109,33 @@
   var ICON_EYE_OFF = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></svg>';
 
   // ---- Helpers ----
-  function isPasswordStrong(pwd) {
+  // Two ways to clear the strength gate:
+  //   1. a mixed-character password: 24+ chars with upper, lower, digit, symbol
+  //      (what the Generate button produces);
+  //   2. a passphrase: 24+ chars made of 6+ different words of 3+ letters,
+  //      separated by spaces, hyphens or underscores (Diceware-style).
+  // Composition rules alone reject long, high-entropy passphrases such as a
+  // 7-word Diceware phrase (~90 bits) while passing "Aaaaaaaaaaaaaaaaaaaaaa1!".
+  // NIST SP 800-63B advises length over composition; this keeps the existing
+  // rule for people who use it and stops punishing the stronger alternative.
+  var WORD_SEP = /[\s\-_]+/;
+  function hasMixedComposition(pwd) {
     return pwd.length >= 24 && /[A-Z]/.test(pwd) && /[a-z]/.test(pwd) && /\d/.test(pwd) && SYMBOL_RE.test(pwd);
+  }
+  function isPassphrase(pwd) {
+    if (pwd.length < 24) return false;
+    var words = pwd.trim().split(WORD_SEP).filter(Boolean);
+    if (words.length < 6) return false;
+    var distinct = {}, count = 0;
+    for (var i = 0; i < words.length; i++) {
+      var w = words[i].toLowerCase();
+      if (w.length < 3) return false;
+      if (!distinct[w]) { distinct[w] = 1; count++; }
+    }
+    return count >= 6;
+  }
+  function isPasswordStrong(pwd) {
+    return hasMixedComposition(pwd) || isPassphrase(pwd);
   }
 
   function generatePassword() {
@@ -540,7 +565,7 @@
     var pw = $('p').value;
     if (!pw) { status('err', 'A password is required.'); return; }
     if (mode === 'encrypt' && !isPasswordStrong(pw)) {
-      status('err', 'Weak password. Use at least 24 characters with uppercase, lowercase, numbers, and symbols.'); return;
+      status('err', 'Weak password. Use at least 24 characters with uppercase, lowercase, numbers and symbols — or a passphrase of 6+ different words (24+ characters in total).'); return;
     }
     if (useKeyFile && !keyFile) { status('err', '"Use key file" is on but no key file is selected. Choose one, or turn the option off.'); return; }
 
