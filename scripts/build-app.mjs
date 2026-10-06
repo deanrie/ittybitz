@@ -1,18 +1,30 @@
 #!/usr/bin/env node
 /**
- * Assemble site/index.html — the single-file IttyBitz — from reviewable parts.
+ * Assemble the two shipped files from reviewable parts:
  *
- * There is no framework and no bundler. This script only concatenates:
- *   scripts/build/head.html          hand-written page (HTML + CSS)
- *   scripts/build/qrcode-lib.js      kazuhikoarase/qrcode-generator (MIT), verbatim
- *   scripts/build/crypto-core.js     DOM-free encrypt/decrypt (mirrors src/lib/crypto.ts)
- *   <bip39 core>                     generated from src/lib/bip39.ts (canonical wordlist)
- *   scripts/build/app.js             the UI wiring
+ *   site/index.html — the single-file IttyBitz
+ *     scripts/build/head.html          hand-written page (HTML + CSS)
+ *     scripts/build/qrcode-lib.js      kazuhikoarase/qrcode-generator (MIT), verbatim
+ *     scripts/build/crypto-core.js     DOM-free format + key derivation + decrypt
+ *     scripts/build/crypto-encrypt.js  DOM-free encrypt (needs the core above)
+ *     <bip39 core>                     generated from src/lib/bip39.ts (canonical wordlist)
+ *     scripts/build/fingerprint-core.js
+ *     scripts/build/app.js             the UI wiring
  *
- * The committed site/index.html is the shipped artifact; this script exists so
- * that artifact is reproducible and its provenance auditable. Users never run
- * it — they just open the HTML file. After running, `npm run test:crypto`
- * re-verifies the result against crypto.ts and the historical fixtures.
+ *   site/ittybitz-recovery.html — the decrypt-only recovery tool
+ *     scripts/build/recovery-head.html hand-written page (HTML + CSS)
+ *     scripts/build/crypto-core.js     the SAME core block, decrypt half only
+ *     scripts/build/recovery-app.js    its UI wiring
+ *
+ * There is no framework and no bundler; this only concatenates. The recovery
+ * tool used to carry a hand-maintained copy of the decrypt core; the
+ * regression suite caught drift, but every fix still had to be made twice.
+ * Now there is one source for the container format and key derivation.
+ *
+ * The committed site/ files are the shipped artifacts; this script exists so
+ * they are reproducible and their provenance auditable. Users never run it —
+ * they just open the HTML file. After running, `npm run test:crypto`
+ * re-verifies both against crypto.ts and the historical fixtures.
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -51,14 +63,17 @@ if (bip39Core.includes("__WORDLIST__")) {
 const head = read(join(BUILD, "head.html"));
 const qrcode = read(join(BUILD, "qrcode-lib.js"));
 const cryptoCore = read(join(BUILD, "crypto-core.js"));
+const cryptoEncrypt = read(join(BUILD, "crypto-encrypt.js"));
 const fingerprint = read(join(BUILD, "fingerprint-core.js"));
 const app = read(join(BUILD, "app.js"));
+const recoveryHead = read(join(BUILD, "recovery-head.html"));
+const recoveryApp = read(join(BUILD, "recovery-app.js"));
 
 // 4. Assemble. Script ids match what scripts/crypto-regression.mts extracts.
 const out =
   head +
   '\n<script id="ittybitz-vendor-qrcode">\n' + qrcode +
-  '\n</script>\n<script id="ittybitz-crypto-core">\n' + cryptoCore +
+  '\n</script>\n<script id="ittybitz-crypto-core">\n' + cryptoCore + '\n' + cryptoEncrypt +
   '\n</script>\n<script id="ittybitz-bip39">\n' + bip39Core +
   '\n</script>\n<script id="ittybitz-fingerprint">\n' + fingerprint +
   '\n</script>\n<script>\n' + app +
@@ -67,3 +82,17 @@ const out =
 const target = join(ROOT, "site", "index.html");
 writeFileSync(target, out);
 console.log(`Built site/index.html — ${out.length} bytes (${wordCount} BIP-39 words inlined).`);
+
+// 5. The recovery tool: same core block, decrypt half only, no encrypt.
+if (/ittybitzEncrypt/.test(cryptoCore)) {
+  console.error("ERROR: crypto-core.js must not define ittybitzEncrypt; that belongs in crypto-encrypt.js (the recovery tool is decrypt-only)");
+  process.exit(1);
+}
+const recovery =
+  recoveryHead +
+  '<script id="ittybitz-decrypt-core">\n' + cryptoCore +
+  '\n</script>\n<script>\n' + recoveryApp +
+  '</script>\n</body>\n</html>\n';
+const recoveryTarget = join(ROOT, "site", "ittybitz-recovery.html");
+writeFileSync(recoveryTarget, recovery);
+console.log(`Built site/ittybitz-recovery.html — ${recovery.length} bytes.`);

@@ -310,18 +310,17 @@ async function main() {
   // build step, so a user can recover their data even if this project,
   // its domain and its author are all gone.
   //
-  // It reimplements the container parsing and key derivation, which means it
-  // can silently drift from crypto.ts. So it does not get to be trusted on
-  // its own claims: the decrypt core is extracted from the HTML and every
-  // historical fixture above is replayed through it. If the recovery file
-  // and crypto.ts ever disagree about any real ciphertext, this fails.
+  // Its decrypt core is the same scripts/build/crypto-core.js block the app
+  // carries, assembled into the file by scripts/build-app.mjs — but what is
+  // tested is the SHIPPED file, not the source: the block is extracted from
+  // the HTML and every historical fixture above is replayed through it, so a
+  // build that assembled the wrong thing fails here. If the recovery file and
+  // crypto.ts ever disagree about any real ciphertext, this fails.
   console.log("\nStandalone recovery file (site/ittybitz-recovery.html):");
 
-  // This is the only copy of the recovery tool in the repository. It lives in
-  // site/, the directory published to GitHub Pages, so it needs no build step to
-  // reach ittybitz.app — and no build step here either, which is why this
-  // suite's workflow can skip npm ci entirely. Recover/README.md is a pointer
-  // to this file, not a second copy of it.
+  // The shipped copy lives in site/, the directory published to GitHub Pages,
+  // so it reaches ittybitz.app with no processing. Recover/README.md is a
+  // pointer to this file, not a second copy of it.
   const recoveryHtml = readFileSync(join(HERE, "..", "site", "ittybitz-recovery.html"), "utf8");
   const coreMatch = recoveryHtml.match(
     /<script id="ittybitz-decrypt-core">([\s\S]*?)<\/script>/
@@ -410,8 +409,8 @@ async function main() {
   }
 
   // ---- 7. Standalone two-way app (site/index.html) ----
-  // The full single-file IttyBitz encrypts AND decrypts. Like the recovery
-  // file it reimplements the container parsing and key derivation, so it is
+  // The full single-file IttyBitz encrypts AND decrypts. Its core block
+  // reimplements the container parsing and key derivation, so it is
   // gated the same way — but in BOTH directions: ciphertext it produces must
   // open under crypto.ts, and ciphertext crypto.ts produces must open under
   // it. That two-way guarantee is something no amount of reading the page
