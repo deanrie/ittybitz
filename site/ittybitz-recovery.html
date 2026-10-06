@@ -14,7 +14,7 @@
      A decrypted file is handed to the browser's download mechanism as a
      blob: URL, which never touches the network. -->
 <meta http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'sha256-BVmDpGXlS5zPFhwENBr1kSpTwrkiWmGeGQB6w1MymoY=' 'sha256-MxTZrbCO1I7nSrEcs5l5j9Qu1DPLjORW6GsCGqCwf1Q='; style-src 'unsafe-inline'; connect-src 'none'; img-src 'none'; form-action 'none'; base-uri 'none'">
+      content="default-src 'none'; script-src 'sha256-8r7b40fsQKstTbuL+2F3RnMJ1TYUw3xhLRRrHuCM3NU=' 'sha256-MxTZrbCO1I7nSrEcs5l5j9Qu1DPLjORW6GsCGqCwf1Q='; style-src 'unsafe-inline'; connect-src 'none'; img-src 'none'; form-action 'none'; base-uri 'none'">
 <!--
   ═══════════════════════════════════════════════════════════════════════
   IttyBitz Recovery Tool — standalone offline decryption
@@ -305,6 +305,16 @@ function ittybitzFormatVersion(bytes) {
   return bytes[4];
 }
 
+// The app NFC-normalizes the password before encrypting, because
+// "é" may be typed as U+00E9 or as "e"+U+0301 depending on platform, and those
+// are different bytes to PBKDF2. Files made before that were keyed on the exact
+// typed string. So: try NFC first, then — only if the typed form differs — the
+// exact typed bytes. Both forms are tried, nothing older is left behind.
+function ittybitzPasswordCandidates(password) {
+  var nfc = password.normalize('NFC');
+  return nfc === password ? [password] : [nfc, password];
+}
+
 async function ittybitzDeriveKey(password, salt, keyFileBytes) {
   var pw = new TextEncoder().encode(password);
   var material;
@@ -350,9 +360,16 @@ async function ittybitzDecrypt(bytes, password, keyFileBytes) {
   var iv = bytes.slice(offset + ITTYBITZ_SALT_LENGTH, headerEnd);
   var ciphertext = bytes.slice(headerEnd);
 
-  var key = await ittybitzDeriveKey(password, salt, keyFileBytes);
-  var plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv }, key, ciphertext);
-  return new Uint8Array(plain);
+  var candidates = ittybitzPasswordCandidates(password);
+  for (var c = 0; c < candidates.length; c++) {
+    var key = await ittybitzDeriveKey(candidates[c], salt, keyFileBytes);
+    try {
+      var plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv }, key, ciphertext);
+      return new Uint8Array(plain);
+    } catch (e) {
+      if (c === candidates.length - 1) throw e;
+    }
+  }
 }
 </script>
 <script>

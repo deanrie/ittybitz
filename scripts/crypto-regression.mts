@@ -23,8 +23,15 @@
  * AES-256-GCM, password bytes UTF-8, optional key file appended after the
  * password bytes. Verified identical from v1.0 to HEAD.
  *
+ * Password Unicode form: through v3.0.11 the password was keyed on its exact
+ * typed code points. Since then encryption NFC-normalizes it, and decryption
+ * tries NFC first and the exact typed form second. Both are gated here: the
+ * "nfd-password" fixture (made by v3.0.11 with a non-NFC password) must still
+ * open, and NFC/NFD spellings of one password must open each other's output.
+ *
  * Adding fixtures: APPEND to crypto-fixtures.json. Never modify or delete an
  * existing entry — each one is a promise that a real user's file still opens.
+ * An entry may carry its own "password" to override the suite-wide one.
  *
  * The password and key file in the fixtures are TEST-ONLY and published in
  * this repo. Treat them as compromised; never use them for real data.
@@ -46,6 +53,11 @@ const FIXTURES = JSON.parse(readFileSync(join(HERE, "crypto-fixtures.json"), "ut
 
 const enc = new TextEncoder();
 const dec = new TextDecoder();
+
+// Most fixtures share the suite-wide password; a few carry their own.
+function fixturePassword(fx: any): string {
+  return typeof fx.password === "string" ? fx.password : FIXTURES.password;
+}
 
 let failures = 0;
 let passed = 0;
@@ -83,7 +95,7 @@ async function main() {
     try {
       const keyFile = fx.keyFile ? hexToArrayBuffer(FIXTURES.keyFileHex) : null;
       const plaintext = dec.decode(
-        await decryptFile(b64ToArrayBuffer(fx.base64), FIXTURES.password, keyFile)
+        await decryptFile(b64ToArrayBuffer(fx.base64), fixturePassword(fx), keyFile)
       );
       check(plaintext === fx.plaintext, label);
       if (plaintext !== fx.plaintext) {
@@ -184,6 +196,38 @@ async function main() {
   });
   await rejects("truncated input rejected", () =>
     decryptFile(ct.slice(0, 20), FIXTURES.password, null)
+  );
+
+  // ---- 4b. Password Unicode form ----
+  // One password, two code-point spellings of "é": U+00E9 (NFC, most
+  // keyboards) and "e"+U+0301 (NFD, some macOS inputs, IMEs, pasted text).
+  // Before normalization these keyed different PBKDF2 inputs and a file made
+  // on one machine would not open on another. Now either spelling opens a
+  // container made with the other, in every implementation, and the
+  // "nfd-password" fixture above proves pre-normalization files still open.
+  console.log("\nPassword Unicode normalization:");
+  const pwNfc = "Caf\u00e9-Normalization-Check-2026!";
+  const pwNfd = "Cafe\u0301-Normalization-Check-2026!";
+  check(
+    pwNfc !== pwNfd && pwNfc.normalize("NFC") === pwNfd.normalize("NFC"),
+    "NFC and NFD spellings differ as strings but are the same text"
+  );
+  // Decrypt to text, or null on failure — so a regression reads as FAIL, not FATAL.
+  const opens = async (fn: () => Promise<ArrayBuffer | Uint8Array>): Promise<string | null> => {
+    try { return dec.decode(await fn()); } catch { return null; }
+  };
+  const ctNfc = await encryptFile(enc.encode(secret).buffer as ArrayBuffer, pwNfc, null);
+  const ctNfd = await encryptFile(enc.encode(secret).buffer as ArrayBuffer, pwNfd, null);
+  check(
+    (await opens(() => decryptFile(ctNfc.slice(0), pwNfd, null))) === secret,
+    "crypto.ts: encrypted with NFC spelling, opens with NFD spelling"
+  );
+  check(
+    (await opens(() => decryptFile(ctNfd.slice(0), pwNfc, null))) === secret,
+    "crypto.ts: encrypted with NFD spelling, opens with NFC spelling"
+  );
+  await rejects("crypto.ts: wrong non-NFC password still rejected after both attempts", () =>
+    decryptFile(ctNfc.slice(0), pwNfd + "x", null)
   );
 
   // ---- 5. BIP-39 / SeedQR ----
@@ -308,7 +352,7 @@ async function main() {
             ? new Uint8Array(hexToArrayBuffer(FIXTURES.keyFileHex))
             : null;
           const bytes = new Uint8Array(b64ToArrayBuffer(fx.base64));
-          const out = dec.decode(await recoveryDecrypt(bytes, FIXTURES.password, keyFile));
+          const out = dec.decode(await recoveryDecrypt(bytes, fixturePassword(fx), keyFile));
           if (out === fx.plaintext) recovered++;
           else {
             recoveryFailed++;
@@ -350,6 +394,18 @@ async function main() {
       await rejects("recovery file rejects truncated input", () =>
         recoveryDecrypt(new Uint8Array(ct.slice(0, 20)), FIXTURES.password, null)
       );
+
+      // Password Unicode form: either spelling opens a container made with
+      // the other. (The pre-normalization case is the "nfd-password" fixture,
+      // already replayed above.)
+      check(
+        (await opens(() => recoveryDecrypt(new Uint8Array(ctNfc.slice(0)), pwNfd, null))) === secret,
+        "recovery file: encrypted with NFC spelling, opens with NFD spelling"
+      );
+      check(
+        (await opens(() => recoveryDecrypt(new Uint8Array(ctNfd.slice(0)), pwNfc, null))) === secret,
+        "recovery file: encrypted with NFD spelling, opens with NFC spelling"
+      );
     }
   }
 
@@ -390,7 +446,7 @@ async function main() {
         try {
           const keyFileU8 = fx.keyFile ? new Uint8Array(hexToArrayBuffer(FIXTURES.keyFileHex)) : null;
           const out = dec.decode(
-            await appDecrypt(new Uint8Array(b64ToArrayBuffer(fx.base64)), FIXTURES.password, keyFileU8)
+            await appDecrypt(new Uint8Array(b64ToArrayBuffer(fx.base64)), fixturePassword(fx), keyFileU8)
           );
           if (out === fx.plaintext) appOk++;
           else { appBad++; console.error(`  FAIL  app mismatch on ${fx.version} ${fx.payload}`); }
@@ -459,6 +515,22 @@ async function main() {
       });
       await rejects("app rejects truncated input", () =>
         appDecrypt(new Uint8Array(ct.slice(0, 20)), FIXTURES.password, null)
+      );
+
+      // 7d'. Password Unicode form, across implementations: the app must
+      // normalize on encrypt (so crypto.ts opens its output with the other
+      // spelling) and try both forms on decrypt.
+      const appCtNfd = await appEncrypt(enc.encode("app nfd"), pwNfd, null);
+      check(
+        (await opens(() => decryptFile(Uint8Array.from(appCtNfd).buffer as ArrayBuffer, pwNfc, null))) === "app nfd",
+        "app: encrypted with NFD spelling, opens under crypto.ts with NFC spelling"
+      );
+      check(
+        (await opens(() => appDecrypt(new Uint8Array(ctNfc.slice(0)), pwNfd, null))) === secret,
+        "app: crypto.ts container keyed via NFC spelling, opens with NFD spelling"
+      );
+      await rejects("app: wrong non-NFC password still rejected after both attempts", () =>
+        appDecrypt(new Uint8Array(ctNfc.slice(0)), pwNfd + "x", null)
       );
 
       // 7e. BIP-39 parity with src/lib/bip39.ts.

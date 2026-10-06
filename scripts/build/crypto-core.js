@@ -9,6 +9,13 @@
    password bytes, with the key file bytes (if any) appended after them.
    v0 (headerless) containers from IttyBitz 1.x still decrypt.
 
+   Password Unicode form: the password is NFC-normalized before encryption,
+   because "é" can arrive as U+00E9 (NFC) or "e"+U+0301 (NFD) depending on
+   platform and input method, and those are different bytes to PBKDF2.
+   Decryption tries NFC first, then — only if the typed string was not
+   already NFC — the exact typed bytes, which is how ciphertexts made before
+   this normalization were keyed. Every older file still opens.
+
    The PBKDF2/AES output depends only on (password, key file, salt, iv) — never
    on the CryptoKey's declared usages — so a key derived here with ['encrypt']
    interoperates byte-for-byte with the app's ['encrypt','decrypt'] key.
@@ -34,6 +41,13 @@ function ittybitzValidatePassword(password) {
   if (typeof password !== 'string') throw new Error('Password must be a string.');
   if (password.length > ITTYBITZ_MAX_PASSWORD_LENGTH) throw new Error('Password is too long.');
   if (password.indexOf('\0') >= 0) throw new Error('Password contains invalid characters.');
+}
+
+// Password strings to try on decrypt: NFC first, then the exact typed form if
+// it differs. No duplicates, so an already-NFC password costs one PBKDF2 run.
+function ittybitzPasswordCandidates(password) {
+  var nfc = password.normalize('NFC');
+  return nfc === password ? [password] : [nfc, password];
 }
 
 async function ittybitzDeriveKey(password, salt, keyFileBytes, usages) {
@@ -73,7 +87,7 @@ async function ittybitzEncrypt(bytes, password, keyFileBytes) {
 
   var salt = crypto.getRandomValues(new Uint8Array(ITTYBITZ_SALT_LENGTH));
   var iv = crypto.getRandomValues(new Uint8Array(ITTYBITZ_IV_LENGTH));
-  var key = await ittybitzDeriveKey(password, salt, keyFileBytes, ['encrypt']);
+  var key = await ittybitzDeriveKey(password.normalize('NFC'), salt, keyFileBytes, ['encrypt']);
   var ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, key, bytes));
 
   var out = new Uint8Array(5 + salt.length + iv.length + ct.length);
@@ -112,7 +126,14 @@ async function ittybitzDecrypt(bytes, password, keyFileBytes) {
   var iv = bytes.slice(offset + ITTYBITZ_SALT_LENGTH, headerEnd);
   var ciphertext = bytes.slice(headerEnd);
 
-  var key = await ittybitzDeriveKey(password, salt, keyFileBytes, ['decrypt']);
-  var plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv }, key, ciphertext);
-  return new Uint8Array(plain);
+  var candidates = ittybitzPasswordCandidates(password);
+  for (var c = 0; c < candidates.length; c++) {
+    var key = await ittybitzDeriveKey(candidates[c], salt, keyFileBytes, ['decrypt']);
+    try {
+      var plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv }, key, ciphertext);
+      return new Uint8Array(plain);
+    } catch (e) {
+      if (c === candidates.length - 1) throw e; // same DOMException as before
+    }
+  }
 }

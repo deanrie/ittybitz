@@ -268,6 +268,16 @@
       "keyFile": true,
       "plaintext": "The quick brown fox jumps over the lazy dog 0123456789",
       "base64": "SUJUWgHoZ9qGEYZvupvMx/Hv5jo2vP5ONAhqWJPUutBlDl2scTsTbRJnOz9pJx9krC/O0DtWcClBWDP+NI4Id5ZSWYS4mMsGJmfld21u+r44K7EvqUhMZpxD52wWXVU8huqEv2MdjQ=="
+    },
+    {
+      "_comment": "Produced by the v3.0.11 crypto.ts, which keyed PBKDF2 on the exact typed string. The password is deliberately NOT NFC: the é is e + U+0301 (kept as a JSON escape so no editor can silently recompose it). Current code normalizes to NFC first, so this entry proves the exact-bytes fallback keeps pre-normalization files openable. The 'password' field overrides the suite-wide password for this entry only.",
+      "version": "v3.0.11",
+      "format": "v1",
+      "payload": "nfd-password",
+      "keyFile": false,
+      "password": "Cafe\u0301-Passphrase-Fixture-Only-2026!",
+      "plaintext": "encrypted by v3.0.11 with a non-NFC (NFD) password — must decrypt forever",
+      "base64": "SUJUWgEaSskUq53fKEqoqily3UT0+A70GLYUnWG35zQtA7sSrRHXuBJ2pPkzdBI/vQ56GtZHr9EdRmc8cHJtBEJKenPuttwdF51/dXgK9F6gFCN2apc2AatuPQ7rRegYhAsX63ykYpO+UiERXBIYW6gTWeAfAQostHOg0w=="
     }
   ]
 }
