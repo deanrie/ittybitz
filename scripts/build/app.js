@@ -155,6 +155,21 @@
     return pw;
   }
 
+  // A passphrase from the BIP-39 list the page already carries: 2048 words is
+  // exactly 2^11, so eleven raw bits index it with no bias, and eight words
+  // carry 88 bits. Readable, writable by hand, and it costs the file nothing.
+  // Eight is deliberately NOT a valid mnemonic length (12/15/18/21/24), so no
+  // wallet will ever accept it as a seed; the notice says so anyway.
+  var PASSPHRASE_WORDS = 8;
+  function generatePassphrase() {
+    if (BIP39_WORDLIST.length !== 2048) throw new Error('wordlist is not 2048 entries; masking would bias');
+    var idx = new Uint16Array(PASSPHRASE_WORDS);
+    crypto.getRandomValues(idx);
+    var words = [];
+    for (var i = 0; i < idx.length; i++) words.push(BIP39_WORDLIST[idx[i] & 2047]);
+    return words.join(' ');
+  }
+
   function validName(name) {
     if (name.indexOf('..') >= 0 || name.indexOf('/') >= 0 || name.indexOf('\\') >= 0) return false;
     if (name.length > 255) return false;
@@ -325,7 +340,7 @@
   function fullReset() {
     mainFile = null; keyFile = null;
     clearMainZone(); clearKeyZone();
-    $('p').value = '';
+    $('p').value = ''; $('p2').value = '';
     $('t').value = '';
     showTextSecret = false; // a reveal never carries over to the next secret
     $('t').classList.remove('ok-border', 'bad-border');
@@ -347,6 +362,8 @@
     $('pw-hint').style.display = enc ? '' : 'none';
     $('t-actions').style.display = enc ? '' : 'none';
     $('p-gen').style.display = enc ? '' : 'none';
+    $('p-gen-words').style.display = enc ? '' : 'none';
+    $('p2-wrap').style.display = enc ? '' : 'none';
     $('go-icon').innerHTML = enc ? ICON_LOCK : ICON_UNLOCK;
     $('go-label').textContent = enc ? 'Encrypt' : 'Decrypt';
     // Encrypt-side secret text is a human passphrase (sans font, blur toggle);
@@ -438,8 +455,13 @@
   function refreshPasswordButtons() {
     var pw = $('p').value;
     $('p-copy').disabled = !pw;
-    $('p-clear').disabled = !pw;
+    $('p-clear').disabled = !pw && !$('p2').value;
     $('p').classList.remove('ok-border', 'bad-border');
+    // The repeat field: green once it matches, red while it does not, nothing
+    // while it is empty — so a typo shows before Encrypt is pressed.
+    var p2 = $('p2').value;
+    $('p2').classList.remove('ok-border', 'bad-border');
+    if (p2 && mode === 'encrypt') $('p2').classList.add(p2 === pw ? 'ok-border' : 'bad-border');
     var strong = !!pw && mode === 'encrypt' && isPasswordStrong(pw);
     if (pw && mode === 'encrypt') $('p').classList.add(strong ? 'ok-border' : 'bad-border');
     if (strong && !pwNoticed) { pwNoticed = true; status('ok', 'Password accepted. ' + SAVE_PW_NOTICE); }
@@ -456,13 +478,29 @@
     if (f.type === 'password') { f.type = 'text'; this.textContent = 'Hide'; }
     else { f.type = 'password'; this.textContent = 'Show'; }
   };
+  $('p2').addEventListener('input', refreshPasswordButtons);
+  $('p2-toggle').onclick = function () {
+    var f = $('p2');
+    if (f.type === 'password') { f.type = 'text'; this.textContent = 'Hide'; }
+    else { f.type = 'password'; this.textContent = 'Show'; }
+  };
   $('p-copy').onclick = function () { copyText($('p').value); };
-  $('p-clear').onclick = function () { $('p').value = ''; refreshPasswordButtons(); };
+  $('p-clear').onclick = function () { $('p').value = ''; $('p2').value = ''; refreshPasswordButtons(); };
+  // A generated password was never typed, so there is no typo to catch: both
+  // fields are filled, and the notice to save it carries the weight instead.
   $('p-gen').onclick = function () {
-    $('p').value = generatePassword();
+    $('p').value = $('p2').value = generatePassword();
     pwNoticed = true; // this handler shows the notice itself
     refreshPasswordButtons();
     status('ok', 'A new secure password has been generated. ' + SAVE_PW_NOTICE);
+  };
+  $('p-gen-words').onclick = function () {
+    try {
+      $('p').value = $('p2').value = generatePassphrase();
+    } catch (e) { status('err', e.message + '. Do not use this page to generate a passphrase.'); return; }
+    pwNoticed = true;
+    refreshPasswordButtons();
+    status('ok', 'A passphrase of ' + PASSPHRASE_WORDS + ' random words (88 bits) has been generated. It is a password, not a wallet seed: no wallet accepts an 8-word phrase. ' + SAVE_PW_NOTICE);
   };
 
   // ---- Key file toggle ----
@@ -567,6 +605,11 @@
     if (mode === 'encrypt' && !isPasswordStrong(pw)) {
       status('err', 'Weak password. Use at least 24 characters with uppercase, lowercase, numbers and symbols — or a passphrase of 6+ different words (24+ characters in total).'); return;
     }
+    if (mode === 'encrypt' && $('p2').value !== pw) {
+      status('err', $('p2').value ? 'The two passwords do not match. Fix the typo before encrypting — the password is the only way back in.'
+                                  : 'Repeat the password in the second field. It is cleared after encrypting and is the only way back in, so a typo would be found too late.');
+      return;
+    }
     if (useKeyFile && !keyFile) { status('err', '"Use key file" is on but no key file is selected. Choose one, or turn the option off.'); return; }
 
     btn.disabled = true;
@@ -654,7 +697,7 @@
     } finally {
       btn.disabled = false;
       $('go-icon').innerHTML = mode === 'encrypt' ? ICON_LOCK : ICON_UNLOCK;
-      $('p').value = ''; refreshPasswordButtons(); // never leave the password in the field
+      $('p').value = ''; $('p2').value = ''; refreshPasswordButtons(); // never leave the password in the fields
     }
   };
 
