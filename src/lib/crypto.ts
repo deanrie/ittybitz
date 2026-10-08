@@ -77,6 +77,29 @@ function validateInputs(dataBuffer: ArrayBuffer, password: string, isEncryption:
   }
 }
 
+// Unicode normalization of the password.
+//
+// The same visible password can arrive as different code-point sequences:
+// "é" is U+00E9 on most keyboards (NFC) but "e" + U+0301 (NFD) from some
+// macOS inputs, IMEs and pasted text. Those encode to different UTF-8 bytes,
+// so PBKDF2 derives a different key and decryption fails with "wrong
+// password" on the other platform. Encryption therefore always normalizes
+// to NFC. Decryption tries NFC first and, only if that fails AND the typed
+// password was not already NFC, retries with the exact bytes typed — which
+// is how every ciphertext before this change was keyed. Nothing that
+// decrypted before stops decrypting; the only cost is one extra PBKDF2 run
+// when a non-NFC password is wrong. Canonical fixture: crypto-fixtures.json
+// payload "nfd-password".
+function normalizePassword(password: string): string {
+  return password.normalize('NFC');
+}
+
+// Candidate password strings to try on decrypt, most likely first, no duplicates.
+function passwordCandidates(password: string): string[] {
+  const nfc = normalizePassword(password);
+  return nfc === password ? [password] : [nfc, password];
+}
+
 // Derive a key from password and/or keyfile using PBKDF2
 async function deriveKey(password: string, salt: Uint8Array, keyFileData: ArrayBuffer | null): Promise<CryptoKey> {
   const passwordEncoder = new TextEncoder();
@@ -155,7 +178,7 @@ export async function encryptFile(dataBuffer: ArrayBuffer, password: string, key
   let encryptedContent: ArrayBuffer | null = null;
   
   try {
-    key = await deriveKey(password, salt, keyFileBuffer);
+    key = await deriveKey(normalizePassword(password), salt, keyFileBuffer);
 
     encryptedContent = await crypto.subtle.encrypt(
       { name: 'AES-GCM', iv: iv as BufferSource },
@@ -234,15 +257,23 @@ export async function decryptFile(encryptedBuffer: ArrayBuffer, password: string
   let key: CryptoKey | null = null;
   
   try {
-    key = await deriveKey(password, salt, keyFileBuffer);
-    
-    const decryptedContent = await crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv: iv as BufferSource },
-      key,
-      encryptedContent as BufferSource
-    );
-    
-    return decryptedContent;
+    // NFC first (how everything is encrypted from now on), then the exact
+    // typed string if it differs (how older ciphertexts may have been keyed).
+    // The key file is read, never erased, by deriveKey, so retrying is safe.
+    const candidates = passwordCandidates(password);
+    for (let i = 0; i < candidates.length; i++) {
+      key = await deriveKey(candidates[i]!, salt, keyFileBuffer);
+      try {
+        return await crypto.subtle.decrypt(
+          { name: 'AES-GCM', iv: iv as BufferSource },
+          key,
+          encryptedContent as BufferSource
+        );
+      } catch (error) {
+        if (i === candidates.length - 1) throw error;
+      }
+    }
+    throw new Error('unreachable');
   } catch (error) {
     // Generic error to prevent information leakage
     throw new Error('Decryption failed. The password or key file may be incorrect, or the data may be corrupted.');

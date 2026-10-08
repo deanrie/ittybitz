@@ -3,14 +3,14 @@
     "Ciphertexts produced by the REAL src/lib/crypto.ts from each tagged release,",
     "extracted from git history and run directly. Every entry must decrypt with the",
     "current implementation, forever. Append new entries; never modify or remove old ones.",
-    "The password and key file here are TEST-ONLY and published — treat as compromised."
+    "The password and key file here are TEST-ONLY and published \u2014 treat as compromised."
   ],
   "password": "Test-Password-For-Verification-Only-2026!",
   "keyFileHex": "8f2a1c9d4e7b60358f2a1c9d4e7b60358f2a1c9d4e7b60358f2a1c9d4e7b60351122334455667788112233445566778811223344556677881122334455667788",
   "independent": {
     "_comment": "Built from raw Web Crypto primitives, deliberately NOT via src/lib/crypto.ts, so it validates the v0 layout independently of this repo's own code.",
     "base64": "AEqF+xtkNZjrvhJ39wwUOAv+3mUV7X62jQ5XLXD5D00qg3OZKX5HELU/W6nrtLOpsbOj7Rxl2mAVkKiJ7xNvE1hjJmrFVaPk5Wi9pk44opKBcTgvdVBFWD2t7/wcqSc2+A==",
-    "plaintext": "legacy v0 headerless fixture — must decrypt forever"
+    "plaintext": "legacy v0 headerless fixture \u2014 must decrypt forever"
   },
   "fixtures": [
     {
@@ -50,7 +50,7 @@
       "format": "v0",
       "payload": "unicode",
       "keyFile": false,
-      "plaintext": "秘密 · émoji 🔐🦖 · Ω≈ç√ · naïve café — “quoted” • ünïcödé",
+      "plaintext": "\u79d8\u5bc6 \u00b7 \u00e9moji \ud83d\udd10\ud83e\udd96 \u00b7 \u03a9\u2248\u00e7\u221a \u00b7 na\u00efve caf\u00e9 \u2014 \u201cquoted\u201d \u2022 \u00fcn\u00efc\u00f6d\u00e9",
       "base64": "Gx+VVlW1DOvehQ9Xtd7b+je/BK1hGR5ySk9nGaWCEZN2f9OuA4boYXlsHlO361Wyku3sPGKSe6dOSmwxJNrnLm7iJJzKx9/19ga0i6h4k4mCG7gn9CIi2KzSzMrgDE8GEgto8c15OzeTTXSedpybwgA1dC/x2i5RTA47/eaJabTyvQoK"
     },
     {
@@ -58,7 +58,7 @@
       "format": "v0",
       "payload": "unicode",
       "keyFile": true,
-      "plaintext": "秘密 · émoji 🔐🦖 · Ω≈ç√ · naïve café — “quoted” • ünïcödé",
+      "plaintext": "\u79d8\u5bc6 \u00b7 \u00e9moji \ud83d\udd10\ud83e\udd96 \u00b7 \u03a9\u2248\u00e7\u221a \u00b7 na\u00efve caf\u00e9 \u2014 \u201cquoted\u201d \u2022 \u00fcn\u00efc\u00f6d\u00e9",
       "base64": "d2OkHsR+bpN1SCS4xScuLPwGA6KtH5W/qX7QjMlTHg0RrU7vWSwPU/lb5rK97WWHvNEJZNGUJjel6jhfPYHim08nVHgopyKOk5GyE8yoKBlgb8/JJOwWD/cr7wDwZHYo279SQtzpsq2yzn8ejD2DBbvqTUHdU7KVQM1mb9JdiMfAHx6D"
     },
     {
@@ -114,7 +114,7 @@
       "format": "v0",
       "payload": "unicode",
       "keyFile": false,
-      "plaintext": "秘密 · émoji 🔐🦖 · Ω≈ç√ · naïve café — “quoted” • ünïcödé",
+      "plaintext": "\u79d8\u5bc6 \u00b7 \u00e9moji \ud83d\udd10\ud83e\udd96 \u00b7 \u03a9\u2248\u00e7\u221a \u00b7 na\u00efve caf\u00e9 \u2014 \u201cquoted\u201d \u2022 \u00fcn\u00efc\u00f6d\u00e9",
       "base64": "etSo21L+YsNeUxKAmd0gfsUARzXlNrJtrl4unrXhEIsBS8NUVQGWD7UvCG0lKBWKL5/waaFLgwwFoOxlVyrdQf4TbdNCYfwfh25wDVCZhNQadsjZvk4J3+4TOxWyUboPjTA2Wkhb8DJALfJmcRnRGSKtfOPL7mTxn4Sw1HW+KCbipc4c"
     },
     {
@@ -122,7 +122,7 @@
       "format": "v0",
       "payload": "unicode",
       "keyFile": true,
-      "plaintext": "秘密 · émoji 🔐🦖 · Ω≈ç√ · naïve café — “quoted” • ünïcödé",
+      "plaintext": "\u79d8\u5bc6 \u00b7 \u00e9moji \ud83d\udd10\ud83e\udd96 \u00b7 \u03a9\u2248\u00e7\u221a \u00b7 na\u00efve caf\u00e9 \u2014 \u201cquoted\u201d \u2022 \u00fcn\u00efc\u00f6d\u00e9",
       "base64": "RT+Z6DDhOpNZw/X8Mig7gGcL3pTuRuZhUJQ1cmd+8k5mF28Z5iwZOpoqHfh4i8BsLSRaDofUd4/hYlHm+PftFBCOSwQv63+p19q7Rvkd57BIfsWtH8bSwwDndfxrjFDZt0N4D8jOkz9E9uSQyRkA9IfTPOJAS2MA/RP8eRhAxvW1LplQ"
     },
     {
@@ -178,7 +178,7 @@
       "format": "v1",
       "payload": "unicode",
       "keyFile": false,
-      "plaintext": "秘密 · émoji 🔐🦖 · Ω≈ç√ · naïve café — “quoted” • ünïcödé",
+      "plaintext": "\u79d8\u5bc6 \u00b7 \u00e9moji \ud83d\udd10\ud83e\udd96 \u00b7 \u03a9\u2248\u00e7\u221a \u00b7 na\u00efve caf\u00e9 \u2014 \u201cquoted\u201d \u2022 \u00fcn\u00efc\u00f6d\u00e9",
       "base64": "SUJUWgF9Q6T1chDZB5ng6GuDOT7RuckFJeuPq8HDcEqHDFV6haX7AhpCY7dWD2UYppN3TqKZWb822keyJjZaNl4k72DMuu6kiI9925NGmSJf1p5pMz67BjYhwMKBFZWWfvNqguqZklyMJIRn9QpdRySh24q1lM495QMJXyaCyljlqwZIgVIIBNI="
     },
     {
@@ -186,7 +186,7 @@
       "format": "v1",
       "payload": "unicode",
       "keyFile": true,
-      "plaintext": "秘密 · émoji 🔐🦖 · Ω≈ç√ · naïve café — “quoted” • ünïcödé",
+      "plaintext": "\u79d8\u5bc6 \u00b7 \u00e9moji \ud83d\udd10\ud83e\udd96 \u00b7 \u03a9\u2248\u00e7\u221a \u00b7 na\u00efve caf\u00e9 \u2014 \u201cquoted\u201d \u2022 \u00fcn\u00efc\u00f6d\u00e9",
       "base64": "SUJUWgGmKBInBjs1dw7xjBcksZSovAkZdbf8pngQlST1aw00JvQ7ikDCvA2n3y8rvMrINrdqpwOBLQmWm41qfEdfCdG1LSArBCw9ZT/RsgRaObUKlhz4Ii+b8EHCyY8jFxlIEKcSao9sYFtJJyg0nEoigomDxlC+30G8LFRiKtSFiO5g5V5U/OE="
     },
     {
@@ -242,7 +242,7 @@
       "format": "v1",
       "payload": "unicode",
       "keyFile": false,
-      "plaintext": "秘密 · émoji 🔐🦖 · Ω≈ç√ · naïve café — “quoted” • ünïcödé",
+      "plaintext": "\u79d8\u5bc6 \u00b7 \u00e9moji \ud83d\udd10\ud83e\udd96 \u00b7 \u03a9\u2248\u00e7\u221a \u00b7 na\u00efve caf\u00e9 \u2014 \u201cquoted\u201d \u2022 \u00fcn\u00efc\u00f6d\u00e9",
       "base64": "SUJUWgE4z4WCOa6QoJKnnrw9ZZWSHZYGL6ytrnvB/yvA9OM9/LtMIFAA5I9Gsh8rOhaio55yPBxb9VWflnwTfaQ1E9bhCgIpSt3BCCTJGdUyJgXEt31/BR6DATlOGxvL5Qucj4Mn67F7S4fL190q1zVpJi4u4iPZ5YBMcyxAF8HIOTCRri+xY/4="
     },
     {
@@ -250,7 +250,7 @@
       "format": "v1",
       "payload": "unicode",
       "keyFile": true,
-      "plaintext": "秘密 · émoji 🔐🦖 · Ω≈ç√ · naïve café — “quoted” • ünïcödé",
+      "plaintext": "\u79d8\u5bc6 \u00b7 \u00e9moji \ud83d\udd10\ud83e\udd96 \u00b7 \u03a9\u2248\u00e7\u221a \u00b7 na\u00efve caf\u00e9 \u2014 \u201cquoted\u201d \u2022 \u00fcn\u00efc\u00f6d\u00e9",
       "base64": "SUJUWgE7uY3yrbgR9KnNyoaoM/PMyxqNB2XmzQPzsF5E3NdDN+ZHNTgd5lb1QAXVNzM0BOO+Pyq5BVmHukSwsvrQe4avlRRjbyosiiUt21km/fRmwHHHiv6XexBQ91u85oL9QuwarVgjduomhL9dj4ZqYSXK0w9wuxNWxydazhEQtvFTAKYyOQI="
     },
     {
@@ -268,6 +268,16 @@
       "keyFile": true,
       "plaintext": "The quick brown fox jumps over the lazy dog 0123456789",
       "base64": "SUJUWgHoZ9qGEYZvupvMx/Hv5jo2vP5ONAhqWJPUutBlDl2scTsTbRJnOz9pJx9krC/O0DtWcClBWDP+NI4Id5ZSWYS4mMsGJmfld21u+r44K7EvqUhMZpxD52wWXVU8huqEv2MdjQ=="
+    },
+    {
+      "_comment": "Produced by the v3.0.11 crypto.ts, which keyed PBKDF2 on the exact typed string. The password is deliberately NOT NFC: the \u00e9 is e + U+0301 (kept as a JSON escape so no editor can silently recompose it). Current code normalizes to NFC first, so this entry proves the exact-bytes fallback keeps pre-normalization files openable. The 'password' field overrides the suite-wide password for this entry only.",
+      "version": "v3.0.11",
+      "format": "v1",
+      "payload": "nfd-password",
+      "keyFile": false,
+      "password": "Cafe\u0301-Passphrase-Fixture-Only-2026!",
+      "plaintext": "encrypted by v3.0.11 with a non-NFC (NFD) password \u2014 must decrypt forever",
+      "base64": "SUJUWgEaSskUq53fKEqoqily3UT0+A70GLYUnWG35zQtA7sSrRHXuBJ2pPkzdBI/vQ56GtZHr9EdRmc8cHJtBEJKenPuttwdF51/dXgK9F6gFCN2apc2AatuPQ7rRegYhAsX63ykYpO+UiERXBIYW6gTWeAfAQostHOg0w=="
     },
     {
       "version": "v3.0.11",
@@ -290,7 +300,7 @@
       "format": "v1",
       "payload": "unicode",
       "keyFile": false,
-      "plaintext": "秘密 · émoji 🔐🦖 · Ω≈ç√ · naïve café — “quoted”",
+      "plaintext": "\u79d8\u5bc6 \u00b7 \u00e9moji \ud83d\udd10\ud83e\udd96 \u00b7 \u03a9\u2248\u00e7\u221a \u00b7 na\u00efve caf\u00e9 \u2014 \u201cquoted\u201d",
       "base64": "SUJUWgFaNAGgBNe4M4Dq64EmWD1xorW/6xpLKF+za91l0MLqdHWPiOwvodN1vihi6lzGw8oSUGENQrFSJCD4dj0HpY3OIM80KvICrpcZuQrPHtLleajGNmcGf//obyCYf/KPvzts3KsCiECIPNQkVYpc/BJiexg6/g=="
     },
     {
@@ -298,7 +308,7 @@
       "format": "v1",
       "payload": "unicode",
       "keyFile": true,
-      "plaintext": "秘密 · émoji 🔐🦖 · Ω≈ç√ · naïve café — “quoted”",
+      "plaintext": "\u79d8\u5bc6 \u00b7 \u00e9moji \ud83d\udd10\ud83e\udd96 \u00b7 \u03a9\u2248\u00e7\u221a \u00b7 na\u00efve caf\u00e9 \u2014 \u201cquoted\u201d",
       "base64": "SUJUWgHJExXwvLaGHEHg9YyoHcBHc3Kae84lVWIuay03isDpbz2hUkBMiIlVbfWz6lSPufR8VNSnDh7LcPSvsY1K6Fq/r4NYFHCJ/bkUqV5UIc1uZ80mCVdpGCkthtbbItSwVJfiTXGlDrce4gvR+/ZUB/vcXN7obQ=="
     }
   ]
