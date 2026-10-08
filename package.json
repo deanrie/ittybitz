@@ -10,6 +10,7 @@
     "test:crypto": "node scripts/crypto-regression.mts",
     "fixtures:add": "node scripts/add-release-fixtures.mts",
     "fixtures:check": "node scripts/add-release-fixtures.mts --check",
+    "test:ui": "node --no-warnings scripts/verify-ui.mts",
     "dev": "cd site && python3 -m http.server 9002"
   }
 }

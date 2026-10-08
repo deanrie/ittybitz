@@ -1,0 +1,37 @@
+name: UI
+
+# The crypto regression suite proves the core; this proves the page around
+# it, through the real controls in headless Chrome: loads under its own
+# hash-pinned CSP with no request, encrypts and decrypts (judged by
+# src/lib/crypto.ts in Node, never by the page itself), hides what should be
+# hidden, refuses to be framed, lays out on a phone. Chrome is preinstalled
+# on the runner; nothing is installed, same rule as the page.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ui:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+
+      - name: Both shipped pages, through the real controls
+        env:
+          CHROME: /usr/bin/google-chrome
+        run: |
+          "$CHROME" --version
+          npm run test:ui
