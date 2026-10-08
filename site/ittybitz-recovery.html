@@ -14,7 +14,7 @@
      A decrypted file is handed to the browser's download mechanism as a
      blob: URL, which never touches the network. -->
 <meta http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'sha256-8r7b40fsQKstTbuL+2F3RnMJ1TYUw3xhLRRrHuCM3NU=' 'sha256-MxTZrbCO1I7nSrEcs5l5j9Qu1DPLjORW6GsCGqCwf1Q='; style-src 'unsafe-inline'; connect-src 'none'; img-src 'none'; form-action 'none'; base-uri 'none'">
+      content="default-src 'none'; script-src 'sha256-d62Tk+rCd6wUUV58KhiTXJ9mIBadB3msb5vqdU1itcE=' 'sha256-MxTZrbCO1I7nSrEcs5l5j9Qu1DPLjORW6GsCGqCwf1Q='; style-src 'unsafe-inline'; connect-src 'none'; img-src 'none'; form-action 'none'; base-uri 'none'">
 <!--
   ═══════════════════════════════════════════════════════════════════════
   IttyBitz Recovery Tool — standalone offline decryption
@@ -180,7 +180,7 @@
   .out.ok  { display: block; background: rgba(44,221,150,.06); border: 1px solid rgba(44,221,150,.35); color: var(--success); }
   .out.err { display: block; background: rgba(220,40,40,.07); border: 1px solid rgba(220,40,40,.4); color: #fca5a5; }
   .out.blur { filter: blur(4px); cursor: pointer; transition: filter .15s; }
-  .hint { font-size: 12px; color: #838391; margin-top: .625rem; }
+  .hint { font-size: 12px; color: #6e6e77; margin-top: .625rem; }
   .note { font-size: 13px; color: var(--muted-foreground); text-align: center; margin-top: 2rem; line-height: 1.7; }
   .note code { color: var(--foreground); font-size: 12px; }
 </style>
@@ -244,7 +244,7 @@
     </div>
 
     <div class="row">
-      <label>Key file <span style="color:#838391">(only if one was used)</span></label>
+      <label>Key file <span style="color:#6e6e77">(only if one was used)</span></label>
       <div class="drop" id="drop-key" role="button" tabindex="0" style="padding:1.75rem 1.5rem">
         <div class="tile" style="height:2.5rem;width:2.5rem">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -288,16 +288,42 @@
   </p>
 </div>
 <script id="ittybitz-decrypt-core">
-/* ── IttyBitz decryption core ────────────────────────────────────────────
+/* ── IttyBitz crypto core — container format, key derivation, decrypt ────
    Kept free of DOM references so the project's regression suite can extract
-   this exact block and run the historical ciphertext fixtures through it.
-   If you change anything here, `npm run test:crypto` must still pass.
+   this exact block and run it against the historical ciphertext fixtures.
+   This block is shared by BOTH shipped files: site/index.html carries it
+   followed by crypto-encrypt.js (as <script id="ittybitz-crypto-core">), and
+   site/ittybitz-recovery.html carries it alone (as
+   <script id="ittybitz-decrypt-core">) — one source, assembled by
+   scripts/build-app.mjs, so the two can never drift apart again.
+
+   Wire format, identical to src/lib/crypto.ts:
+     IBTZ\x01 || salt(16) || iv(12) || AES-256-GCM ciphertext
+   Key derivation: PBKDF2-SHA256 @ 1,000,000 iterations over the UTF-8
+   password bytes, with the key file bytes (if any) appended after them.
+   v0 (headerless) containers from IttyBitz 1.x still decrypt.
+
+   Password Unicode form: the password is NFC-normalized before encryption,
+   because "é" can arrive as U+00E9 (NFC) or "e"+U+0301 (NFD) depending on
+   platform and input method, and those are different bytes to PBKDF2.
+   Decryption tries NFC first, then — only if the typed string was not
+   already NFC — the exact typed bytes, which is how ciphertexts made before
+   this normalization were keyed. Every older file still opens.
+
+   The PBKDF2/AES output depends only on (password, key file, salt, iv) — never
+   on the CryptoKey's declared usages — so a key derived here with ['encrypt']
+   interoperates byte-for-byte with the app's ['encrypt','decrypt'] key.
+
+   If you change anything in this block, `npm run test:crypto` must still pass.
    ───────────────────────────────────────────────────────────────────────── */
 var ITTYBITZ_PBKDF2_ITERATIONS = 1000000;
 var ITTYBITZ_SALT_LENGTH = 16;
 var ITTYBITZ_IV_LENGTH = 12;
 var ITTYBITZ_MAGIC = [0x49, 0x42, 0x54, 0x5a]; // "IBTZ"
+var ITTYBITZ_VERSION = 1;
 var ITTYBITZ_MAX_VERSION = 1;
+var ITTYBITZ_MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB
+var ITTYBITZ_MAX_PASSWORD_LENGTH = 1024;
 
 function ittybitzFormatVersion(bytes) {
   if (bytes.length < 5) return 0;
@@ -305,17 +331,20 @@ function ittybitzFormatVersion(bytes) {
   return bytes[4];
 }
 
-// The app NFC-normalizes the password before encrypting, because
-// "é" may be typed as U+00E9 or as "e"+U+0301 depending on platform, and those
-// are different bytes to PBKDF2. Files made before that were keyed on the exact
-// typed string. So: try NFC first, then — only if the typed form differs — the
-// exact typed bytes. Both forms are tried, nothing older is left behind.
+function ittybitzValidatePassword(password) {
+  if (typeof password !== 'string') throw new Error('Password must be a string.');
+  if (password.length > ITTYBITZ_MAX_PASSWORD_LENGTH) throw new Error('Password is too long.');
+  if (password.indexOf('\0') >= 0) throw new Error('Password contains invalid characters.');
+}
+
+// Password strings to try on decrypt: NFC first, then the exact typed form if
+// it differs. No duplicates, so an already-NFC password costs one PBKDF2 run.
 function ittybitzPasswordCandidates(password) {
   var nfc = password.normalize('NFC');
   return nfc === password ? [password] : [nfc, password];
 }
 
-async function ittybitzDeriveKey(password, salt, keyFileBytes) {
+async function ittybitzDeriveKey(password, salt, keyFileBytes, usages) {
   var pw = new TextEncoder().encode(password);
   var material;
   if (keyFileBytes && keyFileBytes.length) {
@@ -331,25 +360,25 @@ async function ittybitzDeriveKey(password, salt, keyFileBytes) {
     base,
     { name: 'AES-GCM', length: 256 },
     false,
-    ['decrypt']
+    usages
   );
 }
 
+
 /**
- * Decrypt an IttyBitz container.
- * @param {Uint8Array} bytes     raw container bytes (v0 or v1)
+ * Decrypt an IttyBitz container (v0 legacy or v1).
+ * @param {Uint8Array} bytes     raw container bytes
  * @param {string}     password
  * @param {Uint8Array|null} keyFileBytes
  * @returns {Promise<Uint8Array>} plaintext bytes
  */
 async function ittybitzDecrypt(bytes, password, keyFileBytes) {
   if (!bytes || !bytes.length) throw new Error('No data to decrypt.');
+  ittybitzValidatePassword(password);
 
   var version = ittybitzFormatVersion(bytes);
   if (version > ITTYBITZ_MAX_VERSION) {
-    throw new Error(
-      'This file was encrypted with a newer version of IttyBitz than this recovery tool understands.'
-    );
+    throw new Error('This file was encrypted with a newer version of IttyBitz than this tool understands.');
   }
   var offset = version >= 1 ? 5 : 0;
 
@@ -362,15 +391,16 @@ async function ittybitzDecrypt(bytes, password, keyFileBytes) {
 
   var candidates = ittybitzPasswordCandidates(password);
   for (var c = 0; c < candidates.length; c++) {
-    var key = await ittybitzDeriveKey(candidates[c], salt, keyFileBytes);
+    var key = await ittybitzDeriveKey(candidates[c], salt, keyFileBytes, ['decrypt']);
     try {
       var plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv }, key, ciphertext);
       return new Uint8Array(plain);
     } catch (e) {
-      if (c === candidates.length - 1) throw e;
+      if (c === candidates.length - 1) throw e; // same DOMException as before
     }
   }
 }
+
 </script>
 <script>
 (function () {
