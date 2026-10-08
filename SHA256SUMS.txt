@@ -1,2 +1,2 @@
 ea6da32fa6d264bc1be50953a564fdb9216eaf400a83fc239904abd867e80aaf  ittybitz.html
-30117394b19d809a2eb85d08b0dc7cd6f44ac365b4beedbfcd2cfa38e64b2d1b  ittybitz-recovery.html
+9cfac44a9cd6826c85a445ca6dd390250e57571a3112adfc915ad2bc1071b7cd  ittybitz-recovery.html
