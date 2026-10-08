@@ -87,6 +87,8 @@ This application has undergone a detailed security analysis. You can view the fu
 
 The current audit findings and accepted tradeoffs are tracked in-repo: [SECURITY-AUDIT.md](SECURITY-AUDIT.md)
 
+Found something? [SECURITY.md](SECURITY.md) says how to report it privately; machine-readable contact details are at [`/.well-known/security.txt`](https://ittybitz.app/.well-known/security.txt) ([RFC 9116](https://www.rfc-editor.org/rfc/rfc9116)).
+
 ### **Open source advantage**
 - **Transparent code**: every line of security code is publicly auditable
 - **Community verified**: security experts worldwide can review our implementation
@@ -169,6 +171,15 @@ certutil -hashfile ittybitz.html SHA256
 
 The file is byte-identical wherever you got it — the website, the release asset, or this repository's `site/index.html` / `site/ittybitz-recovery.html`.
 
+One check does not depend on trusting this repository at all: each release's HTML files are signed, through [Sigstore](https://www.sigstore.dev/), by the GitHub Actions run that published them — a signature the repository's contents cannot forge. With the [GitHub CLI](https://cli.github.com/):
+
+```bash
+gh attestation verify ittybitz.html -R seQRets/ittybitz
+gh attestation verify ittybitz-recovery.html -R seQRets/ittybitz
+```
+
+It names the workflow, the commit and the tag the file came from. Releases before this was added have no attestation; for those, the checksum is what there is.
+
 ### 🧰 Build from source (contributors only)
 
 You never need this to *use* IttyBitz — the shipped [`site/index.html`](site/index.html) is the product. The build exists so that file is reproducible from small, auditable parts.
@@ -177,11 +188,16 @@ You never need this to *use* IttyBitz — the shipped [`site/index.html`](site/i
 npm run build              # reassemble site/index.html, pin CSP hashes, regenerate SHA256SUMS.txt
 npm run test:crypto        # crypto regression gate (zero dependencies)
 npm run update-csp-hashes  # re-pin CSP hashes + SHA256SUMS after editing a shipped HTML file
+npm run fixtures:add       # before tagging a release: append this version's ciphertexts to the fixtures
 ```
 
 `build` concatenates the hand-written page, the vendored [`qrcode-generator`](https://github.com/kazuhikoarase/qrcode-generator) (MIT), the DOM-free crypto core, and a BIP-39 core generated from `src/lib/bip39.ts` (so the wordlist can never drift), then runs `update-csp-hashes` to lock each inline `<script>` block into the `Content-Security-Policy` as a `'sha256-…'` source and regenerate `SHA256SUMS.txt`. `test:crypto` proves the assembled file both decrypts every historical ciphertext **and** round-trips against the frozen reference implementation in [`src/lib/crypto.ts`](src/lib/crypto.ts) — in both directions, with and without key files.
 
 > **After editing `site/ittybitz-recovery.html` by hand (or anything under `scripts/build/`), run `npm run update-csp-hashes` before committing.** It recomputes the inline-script hashes, rewrites both files' CSP meta tags in place, and regenerates `SHA256SUMS.txt`. It is idempotent — a second run with unchanged scripts writes nothing. Skipping it after a change would leave a stale hash in the CSP and the browser would refuse to run the edited script.
+
+`fixtures:add` encrypts two fixed plaintexts, with and without the suite's key file, using the crypto core extracted from the **shipped** `site/index.html`, and appends the four ciphertexts under the version in `package.json`. That is how every release leaves behind the real artifacts future versions must keep decrypting; the release workflow refuses to publish a tag whose version has none. It is idempotent and never modifies an existing entry.
+
+**Releasing** is a tag push: `.github/workflows/release.yml` checks that the tag, `package.json` and the footer agree, that `site/` is reproducible from source, that the fixtures and the regression suite are green, then publishes `ittybitz.html`, `ittybitz-recovery.html` and `SHA256SUMS.txt`, signs the two HTML files' provenance, and finally fetches the `releases/latest/download/` links to confirm they serve the released bytes.
 
 There are **no runtime or build dependencies**: `node` (22.6+, for native TypeScript stripping) and Python 3 (only for `npm run dev`'s static server) are all that is used.
 

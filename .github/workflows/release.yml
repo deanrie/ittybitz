@@ -1,0 +1,110 @@
+name: Release
+
+# Pushing a tag vX.Y.Z publishes the GitHub release: ittybitz.html,
+# ittybitz-recovery.html and SHA256SUMS.txt, with the hashes in the notes and
+# a Sigstore provenance attestation on each HTML file. The assets are the
+# exact committed site/ files under their release names — the job refuses if
+# SHA256SUMS.txt, package.json's version, the in-page version string or the
+# fixtures disagree with the tag — so a release can never state a hash its
+# file fails, and every release leaves behind the ciphertexts that future
+# versions must keep decrypting.
+#
+# Release notes: docs/releases/<tag>.md if it exists, then the hash block.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions: {}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write      # to create the release and upload its assets
+      id-token: write      # to sign the provenance attestations (Sigstore)
+      attestations: write  # to store them against the repository
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+
+      - name: The tag, package.json and the in-page version string agree
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          pkg="v$(node -p 'require("./package.json").version')"
+          [ "$pkg" = "$TAG" ] || { echo "::error::package.json is $pkg, tag is $TAG"; exit 1; }
+          grep -q "<span id=\"version\">$TAG " site/index.html \
+            || { echo "::error::site/index.html footer does not read $TAG"; grep -o '<span id="version">[^<]*' site/index.html; exit 1; }
+
+      - name: site/ is reproducible from source and the sums are current
+        run: |
+          npm run build
+          git diff --exit-code -- site/ SHA256SUMS.txt \
+            || { echo "::error::site/ or SHA256SUMS.txt is not what 'npm run build' produces from this commit"; exit 1; }
+
+      - name: This version has left its ciphertexts in the regression fixtures
+        run: npm run fixtures:check
+
+      - name: Every historical ciphertext still decrypts
+        run: npm run test:crypto
+
+      - name: Stage the assets under their release names and verify them
+        run: |
+          mkdir -p dist
+          cp site/index.html dist/ittybitz.html
+          cp site/ittybitz-recovery.html dist/ittybitz-recovery.html
+          cp SHA256SUMS.txt dist/SHA256SUMS.txt
+          (cd dist && sha256sum -c SHA256SUMS.txt)
+          echo "SHA_APP=$(sha256sum dist/ittybitz.html | cut -d' ' -f1)" >> "$GITHUB_ENV"
+          echo "SHA_REC=$(sha256sum dist/ittybitz-recovery.html | cut -d' ' -f1)" >> "$GITHUB_ENV"
+
+      - name: Write the release notes
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          {
+            if [ -f "docs/releases/$TAG.md" ]; then cat "docs/releases/$TAG.md"; echo; fi
+            echo "## Verify your download"
+            echo
+            echo 'Put the file(s) in the same folder as `SHA256SUMS.txt`, then `shasum -a 256 -c SHA256SUMS.txt` (macOS) or `sha256sum -c SHA256SUMS.txt` (Linux). Expect `OK`.'
+            echo
+            echo '```'
+            cat dist/SHA256SUMS.txt
+            echo '```'
+            echo
+            echo "Each HTML file also carries a Sigstore provenance attestation signed by this workflow run — a signature the repository's contents cannot forge: \`gh attestation verify ittybitz.html -R ${{ github.repository }}\`."
+          } > notes.md
+
+      # Provenance: SHA256SUMS.txt travels in the same repository as the
+      # pages, so whoever could change one could change the other. This signs
+      # each asset with the identity of THIS workflow run.
+      - name: Attest the assets' provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            dist/ittybitz.html
+            dist/ittybitz-recovery.html
+
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$TAG" dist/ittybitz.html dist/ittybitz-recovery.html dist/SHA256SUMS.txt \
+            --title "$TAG" --notes-file notes.md --verify-tag
+
+      # These links live on GitHub, not on Pages, and fail independently.
+      - name: The latest-download links serve the released bytes
+        run: |
+          sleep 15
+          for f in ittybitz.html ittybitz-recovery.html; do
+            want=$(sha256sum "dist/$f" | cut -d' ' -f1)
+            got=$(curl -sL "https://github.com/${{ github.repository }}/releases/latest/download/$f" | sha256sum | cut -d' ' -f1)
+            [ "$got" = "$want" ] || { echo "::error::releases/latest/download/$f hashes to $got, expected $want"; exit 1; }
+          done

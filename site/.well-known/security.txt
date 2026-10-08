@@ -1,0 +1,19 @@
+# Security contact for ittybitz.app
+# https://www.rfc-editor.org/rfc/rfc9116
+
+# Preferred: private vulnerability report on the repository.
+Contact: https://github.com/seQRets/ittybitz/security/advisories/new
+Contact: mailto:security@seqrets.app
+
+Expires: 2027-08-01T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://ittybitz.app/.well-known/security.txt
+Policy: https://github.com/seQRets/ittybitz/blob/main/SECURITY.md
+
+# This site is two self-contained HTML files with no backend, no database and
+# no network calls. The findings most worth reporting are therefore:
+#   - anything that decrypts a ciphertext without its password and key file
+#   - a ciphertext from any released version that no longer decrypts
+#   - anything that causes a page to make a network request
+#   - a wrong BIP-39 validation, SeedQR or master fingerprint
+# Source: https://github.com/seQRets/ittybitz

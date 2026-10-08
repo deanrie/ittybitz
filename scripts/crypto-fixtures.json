@@ -268,6 +268,38 @@
       "keyFile": true,
       "plaintext": "The quick brown fox jumps over the lazy dog 0123456789",
       "base64": "SUJUWgHoZ9qGEYZvupvMx/Hv5jo2vP5ONAhqWJPUutBlDl2scTsTbRJnOz9pJx9krC/O0DtWcClBWDP+NI4Id5ZSWYS4mMsGJmfld21u+r44K7EvqUhMZpxD52wWXVU8huqEv2MdjQ=="
+    },
+    {
+      "version": "v3.0.11",
+      "format": "v1",
+      "payload": "ascii",
+      "keyFile": false,
+      "plaintext": "The quick brown fox jumps over the lazy dog 0123456789",
+      "base64": "SUJUWgFl715PcxUwlKLZ1Kt/32m6K9qjFt1cuOFwWi9mvVUFAuiLbl3QCWyJZ8gh4E18YRFfJCjESyYc+8bS/AQd7Xlgv0WJbRnlDKvjYQHQ4TgY41U4MSw5B9CEsS6jahpfUTqqtA=="
+    },
+    {
+      "version": "v3.0.11",
+      "format": "v1",
+      "payload": "ascii",
+      "keyFile": true,
+      "plaintext": "The quick brown fox jumps over the lazy dog 0123456789",
+      "base64": "SUJUWgF9bLunGzRJFcSzkavG1U6/e6OU61O0g8ztHYGuXB//S38lY3Mv3kczSigJfyCjj5Z5ZF3oGwqA+dealqsJd1sEf2i3bodAJGCf8HXCPP4/uOtVGI/2+c3AzgOues7Kil4A0A=="
+    },
+    {
+      "version": "v3.0.11",
+      "format": "v1",
+      "payload": "unicode",
+      "keyFile": false,
+      "plaintext": "秘密 · émoji 🔐🦖 · Ω≈ç√ · naïve café — “quoted”",
+      "base64": "SUJUWgFaNAGgBNe4M4Dq64EmWD1xorW/6xpLKF+za91l0MLqdHWPiOwvodN1vihi6lzGw8oSUGENQrFSJCD4dj0HpY3OIM80KvICrpcZuQrPHtLleajGNmcGf//obyCYf/KPvzts3KsCiECIPNQkVYpc/BJiexg6/g=="
+    },
+    {
+      "version": "v3.0.11",
+      "format": "v1",
+      "payload": "unicode",
+      "keyFile": true,
+      "plaintext": "秘密 · émoji 🔐🦖 · Ω≈ç√ · naïve café — “quoted”",
+      "base64": "SUJUWgHJExXwvLaGHEHg9YyoHcBHc3Kae84lVWIuay03isDpbz2hUkBMiIlVbfWz6lSPufR8VNSnDh7LcPSvsY1K6Fq/r4NYFHCJ/bkUqV5UIc1uZ80mCVdpGCkthtbbItSwVJfiTXGlDrce4gvR+/ZUB/vcXN7obQ=="
     }
   ]
 }
