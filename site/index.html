@@ -15,7 +15,7 @@
      canvas and downloads use blob:/data:, none of which are network fetches.
      Nothing here can phone home. -->
 <meta http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'sha256-4GSOHG1PWgpqNwON0DpmpOBDoMdMXoBzQI2KhDuK9js=' 'sha256-4Em4NxQSWDBgpYLFTcLd256b9VX2reZi+PZu/iUX4fE=' 'sha256-W+IzleLCL30nXjyiCRp8Rl3j2GFDMC9KAJFnnygxQ8c=' 'sha256-XlgOklfvkE1YTG+BSxN2kJFwnn+L4EhXLVb01Ma4YsM=' 'sha256-NYQ0hM7SpKRLIsnbuTkqUcaQqX7Tt/p2OBOYLmZTRVY='; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; font-src 'none'; form-action 'none'; base-uri 'none'">
+      content="default-src 'none'; script-src 'sha256-4GSOHG1PWgpqNwON0DpmpOBDoMdMXoBzQI2KhDuK9js=' 'sha256-4Em4NxQSWDBgpYLFTcLd256b9VX2reZi+PZu/iUX4fE=' 'sha256-W+IzleLCL30nXjyiCRp8Rl3j2GFDMC9KAJFnnygxQ8c=' 'sha256-XlgOklfvkE1YTG+BSxN2kJFwnn+L4EhXLVb01Ma4YsM=' 'sha256-1JVp8/SC8kqeAtUfFZpIE7n0eESU0r7Xk0p0rk626BQ='; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; font-src 'none'; form-action 'none'; base-uri 'none'">
 <!--
   ═══════════════════════════════════════════════════════════════════════
   IttyBitz — single-file client-side encryption
@@ -373,7 +373,7 @@
 
     <!-- Password -->
     <div class="row">
-      <label for="p">Password <span class="muted" id="pw-hint" style="color:var(--faint);font-weight:400">· min 24 chars, upper, lower, number, symbol</span></label>
+      <label for="p">Password <span class="muted" id="pw-hint" style="color:var(--faint);font-weight:400">· 24+ chars with upper, lower, number, symbol — or a passphrase of 6+ words</span></label>
       <div class="field">
         <input type="password" id="p" class="pw" autocomplete="off" spellcheck="false" placeholder="Enter a strong password">
         <button type="button" class="toggle-btn" id="p-toggle">Show</button>
@@ -3269,8 +3269,33 @@ async function masterFingerprint(words) { return fingerprintOfSeed(await bip39Se
   var ICON_EYE_OFF = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></svg>';
 
   // ---- Helpers ----
-  function isPasswordStrong(pwd) {
+  // Two ways to clear the strength gate:
+  //   1. a mixed-character password: 24+ chars with upper, lower, digit, symbol
+  //      (what the Generate button produces);
+  //   2. a passphrase: 24+ chars made of 6+ different words of 3+ letters,
+  //      separated by spaces, hyphens or underscores (Diceware-style).
+  // Composition rules alone reject long, high-entropy passphrases such as a
+  // 7-word Diceware phrase (~90 bits) while passing "Aaaaaaaaaaaaaaaaaaaaaa1!".
+  // NIST SP 800-63B advises length over composition; this keeps the existing
+  // rule for people who use it and stops punishing the stronger alternative.
+  var WORD_SEP = /[\s\-_]+/;
+  function hasMixedComposition(pwd) {
     return pwd.length >= 24 && /[A-Z]/.test(pwd) && /[a-z]/.test(pwd) && /\d/.test(pwd) && SYMBOL_RE.test(pwd);
+  }
+  function isPassphrase(pwd) {
+    if (pwd.length < 24) return false;
+    var words = pwd.trim().split(WORD_SEP).filter(Boolean);
+    if (words.length < 6) return false;
+    var distinct = {}, count = 0;
+    for (var i = 0; i < words.length; i++) {
+      var w = words[i].toLowerCase();
+      if (w.length < 3) return false;
+      if (!distinct[w]) { distinct[w] = 1; count++; }
+    }
+    return count >= 6;
+  }
+  function isPasswordStrong(pwd) {
+    return hasMixedComposition(pwd) || isPassphrase(pwd);
   }
 
   function generatePassword() {
@@ -3700,7 +3725,7 @@ async function masterFingerprint(words) { return fingerprintOfSeed(await bip39Se
     var pw = $('p').value;
     if (!pw) { status('err', 'A password is required.'); return; }
     if (mode === 'encrypt' && !isPasswordStrong(pw)) {
-      status('err', 'Weak password. Use at least 24 characters with uppercase, lowercase, numbers, and symbols.'); return;
+      status('err', 'Weak password. Use at least 24 characters with uppercase, lowercase, numbers and symbols — or a passphrase of 6+ different words (24+ characters in total).'); return;
     }
     if (useKeyFile && !keyFile) { status('err', '"Use key file" is on but no key file is selected. Choose one, or turn the option off.'); return; }
 
