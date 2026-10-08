@@ -313,6 +313,33 @@ async function appFlowChecks(browser: any, url: string) {
     chk("the clear overwrites with an empty string when nothing else was copied", clip.afterTimer.length === 2 && clip.afterTimer[1] === 0);
     chk("the clear is skipped if something else was copied in between", clip.afterForeign.length === 1);
 
+    section("several files at once");
+    const multi = await p.evaluate(`
+      const $ = id => document.getElementById(id);
+      const blobs = []; const origCOU = URL.createObjectURL;
+      URL.createObjectURL = b => { blobs.push(b); return origCOU(b); };
+      HTMLAnchorElement.prototype.click = function () { if (this.download) blobs[blobs.length - 1].name = this.download; };
+      $('tab-enc').click(); $('pill-file').click();
+      const dt = new DataTransfer(); dt.items.add(new File(['alpha'], 'a.txt')); dt.items.add(new File(['bravo'], 'b.txt'));
+      $('drop-main').dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }));
+      const desc = $('main-desc').textContent;
+      $('p').value = ${JSON.stringify(PASSWORD)}; $('p').dispatchEvent(new Event('input'));
+      if ($('p2')) { $('p2').value = ${JSON.stringify(PASSWORD)}; $('p2').dispatchEvent(new Event('input')); }
+      $('go').click();
+      ${WAIT_DONE}
+      const names = blobs.map(b => b.name), b64s = [];
+      for (const b of blobs) b64s.push(btoa(String.fromCharCode(...new Uint8Array(await b.arrayBuffer()))));
+      return { desc, status: $('status').textContent, names, b64s }`);
+    let bothOpen = false;
+    try {
+      const a = new TextDecoder().decode(await decryptFile(fromB64(multi.b64s[0]), PASSWORD, null));
+      const b = new TextDecoder().decode(await decryptFile(fromB64(multi.b64s[1]), PASSWORD, null));
+      bothOpen = a === "alpha" && b === "bravo";
+    } catch {}
+    chk("two dropped files are both encrypted, each downloaded under its own name, and both open under crypto.ts",
+        /2 files/.test(multi.desc) && multi.names.join() === "a.txt.ibitz,b.txt.ibitz" && /2 of 2 files encrypted/.test(multi.status) && bothOpen,
+        `${multi.desc} → ${multi.names.join(", ")}`);
+
     section("the password generator");
     const gen = await p.evaluate(`
       const $ = id => document.getElementById(id);
