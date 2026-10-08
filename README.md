@@ -27,7 +27,7 @@ IttyBitz offers a secure and private way to encrypt sensitive information direct
 
 Here’s what you can do with IttyBitz:
 - **Client-side encryption/decryption**: all cryptographic operations happen in your browser. Your files and secrets are never sent to a server.
-- **Password & key file protection**: secure your data with a strong password, an optional key file, or both for an added layer of security. You can use any existing file or generate a new, cryptographically secure key file directly within the app.
+- **Password & key file protection**: secure your data with a strong password, an optional key file, or both for an added layer of security. You can use any existing file or generate a new, cryptographically secure key file directly within the app. When encrypting, the password is typed twice — it is cleared afterwards and is the only way back in, so a typo must be caught before anything is written. Two generators: a 32-character random password, or an 8-word passphrase (88 bits) drawn from the built-in BIP-39 list — readable enough to write down, and deliberately not a valid seed-phrase length, so no wallet will ever mistake it for one.
 - **File & text support**: encrypt and decrypt both files and text snippets.
 - **QR code sharing**: easily share encrypted text snippets via a downloadable QR code.
 - **Hardware-wallet SeedQR export**: when decrypted text is a valid BIP-39 seed phrase, IttyBitz auto-detects it and can display a **Standard SeedQR** for direct import into hardware wallets (Coldcard, SeedSigner, Sparrow, Specter, Krux, Keystone, Jade). Any other decrypted text can be shown as a plain QR. Both are blurred until you deliberately reveal them.
