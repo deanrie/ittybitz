@@ -327,6 +327,55 @@ async function appFlowChecks(browser: any, url: string) {
   } finally { await p.close(); }
 }
 
+/* ---- contrast: every text node vs its composited background --------- */
+// WCAG AA: 4.5:1 for normal text, 3:1 for large (>= 24px, or >= 18.66px bold).
+// Backgrounds are composited up the ancestor chain over the page colour;
+// text over a gradient (the orange buttons) cannot be measured this way and
+// is skipped — those are black on orange, about 8:1 by eye.
+const CONTRAST_PROBE = `
+  document.querySelectorAll('details').forEach(d => d.open = true);
+  const parse = c => { const m = c.match(/rgba?\\(([^)]+)\\)/); if (!m) return null; const p = m[1].split(',').map(parseFloat); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
+  const over = (f, b) => ({ r: f.r * f.a + b.r * (1 - f.a), g: f.g * f.a + b.g * (1 - f.a), b: f.b * f.a + b.b * (1 - f.a), a: 1 });
+  const lum = c => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
+  const contrast = (a, b) => { const l1 = lum(a), l2 = lum(b); return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05); };
+  const bgOf = el => {
+    const chain = []; let gradient = false;
+    for (let e = el; e; e = e.parentElement) {
+      const cs = getComputedStyle(e); const c = parse(cs.backgroundColor); if (c && c.a > 0) chain.push(c);
+      // body's faint radial glow over black barely moves the result; a gradient
+      // on a closer ancestor (the orange buttons) makes it unmeasurable
+      if (e !== document.body && e !== document.documentElement && /gradient/.test(cs.backgroundImage)) gradient = true;
+    }
+    let bg = parse(getComputedStyle(document.documentElement).backgroundColor); if (!bg || bg.a === 0) bg = parse(getComputedStyle(document.body).backgroundColor) || { r: 0, g: 0, b: 0, a: 1 };
+    for (const c of chain.reverse()) bg = over(c, bg);
+    return { bg, gradient };
+  };
+  const out = [], seen = new Set(); let n, checked = 0;
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  while ((n = walker.nextNode())) {
+    const t = n.textContent.trim(); if (t.length < 2) continue;
+    const el = n.parentElement; if (!el || seen.has(el) || ['SCRIPT', 'STYLE'].includes(el.tagName)) continue; seen.add(el);
+    const cs = getComputedStyle(el); if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) continue;
+    const r = el.getBoundingClientRect(); if (!r.width || !r.height) continue;
+    const fill = parse(cs.webkitTextFillColor); if (fill && fill.a === 0) continue;   // gradient-filled headline
+    let fg = parse(cs.color); if (!fg) continue;
+    const { bg, gradient } = bgOf(el); if (gradient) continue;
+    if (fg.a < 1) fg = over(fg, bg);
+    const size = parseFloat(cs.fontSize), bold = parseInt(cs.fontWeight) >= 700;
+    const need = size >= 24 || (size >= 18.66 && bold) ? 3 : 4.5; const c = contrast(fg, bg); checked++;
+    if (c < need) out.push((el.id ? '#' + el.id : el.tagName.toLowerCase()) + ' ' + c.toFixed(2) + ':1 (' + size + 'px) "' + t.slice(0, 30) + '"');
+  }
+  return { checked, fails: out };`;
+
+async function contrastChecks(browser: any, url: string, label: string) {
+  section(`contrast: ${label}`);
+  const p = await openPage(browser, url);
+  try {
+    const r = await p.evaluate(CONTRAST_PROBE);
+    chk(`every text element meets WCAG AA (${r.checked} measured; gradient-backed buttons skipped)`, r.fails.length === 0, r.fails.join(' | '));
+  } finally { await p.close(); }
+}
+
 /* ---- the recovery tool ------------------------------------------------- */
 async function recoveryChecks(browser: any, url: string, label: string) {
   section(`recovery tool ${label}`);
@@ -399,6 +448,8 @@ try {
   await appLoadChecks(browser, pathToFileURL(APP).href, "over file://");
   await appLoadChecks(browser, `${origin}/index.html`, "over http");
   await appFlowChecks(browser, `${origin}/index.html`);
+  await contrastChecks(browser, `${origin}/index.html`, "app");
+  await contrastChecks(browser, `${origin}/ittybitz-recovery.html`, "recovery tool");
   await recoveryChecks(browser, pathToFileURL(RECOVERY).href, "over file://");
   await recoveryChecks(browser, `${origin}/ittybitz-recovery.html`, "over http");
   await guardChecks(browser, `${framerOrigin}/app`, "app",
