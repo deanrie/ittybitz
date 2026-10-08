@@ -180,7 +180,12 @@
   }
   .btn:hover:not(:disabled) { background: hsla(0,0%,100%,0.08); color: var(--foreground); }
   .btn:disabled { opacity: .4; cursor: not-allowed; }
-  .btn svg { width: 14px; height: 14px; }
+  .btn svg { width: 14px; height: 14px; flex: none; }
+  /* Four buttons do not fit one row on a phone; two rows of two do. */
+  @media (max-width: 480px) {
+    .btnrow { flex-wrap: wrap; }
+    .btnrow .btn { flex: 1 1 calc(50% - .25rem); }
+  }
 
   /* Key file toggle */
   .switchrow { display: flex; align-items: center; gap: .75rem; margin-bottom: 1.25rem; }

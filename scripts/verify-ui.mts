@@ -214,14 +214,24 @@ async function appFlowChecks(browser: any, url: string) {
       const weakStatus = $('status').textContent;
       $('p').value = ${JSON.stringify(PASSWORD)}; $('p').dispatchEvent(new Event('input'));
       const strongBorder = $('p').classList.contains('ok-border');
+      // Since the repeat field exists, a mismatch must refuse before anything is derived.
+      let mismatchStatus = null;
+      if ($('p2')) {
+        $('p2').value = ${JSON.stringify(PASSWORD + 'x')}; $('p2').dispatchEvent(new Event('input'));
+        $('go').click(); await new Promise(r => setTimeout(r, 50));
+        mismatchStatus = $('status').textContent;
+        $('p2').value = ${JSON.stringify(PASSWORD)}; $('p2').dispatchEvent(new Event('input'));
+      }
       $('go').click();
       ${WAIT_DONE}
-      return { blurredWhileTyping, weakBorder, weakStatus, strongBorder,
+      return { blurredWhileTyping, weakBorder, weakStatus, strongBorder, mismatchStatus,
                out: $('out').value, status: $('status').textContent, pwAfter: $('p').value,
                secretAfter: $('t').value, qrOffered: $('out-qr').style.display !== 'none' }`);
     chk("the typed secret is blurred as soon as it has content", enc.blurredWhileTyping);
     chk("a weak password is refused before anything is encrypted", enc.weakBorder && /Weak password/.test(enc.weakStatus), enc.weakStatus.slice(0, 40));
     chk("a strong password turns the border green", enc.strongBorder);
+    chk("a mismatched repeat password is refused before anything is encrypted",
+        enc.mismatchStatus === null || /do not match/.test(enc.mismatchStatus), enc.mismatchStatus || "(no repeat field on this build)");
     chk("Encrypt produces Base64 that opens under crypto.ts with the same password", await (async () => {
       try { return new TextDecoder().decode(await decryptFile(fromB64(enc.out), PASSWORD, null)) === secret; } catch { return false; }
     })(), `${enc.out.length} chars`);
