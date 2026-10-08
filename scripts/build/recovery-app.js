@@ -86,6 +86,12 @@
         show('err', 'That filename contains characters that are not allowed.');
         return;
       }
+      // An empty key file adds nothing to the key: the result is the same as
+      // using no key file at all, while looking protected by one.
+      if (zoneId === 'drop-key' && file.size === 0) {
+        show('err', 'That key file is empty (0 bytes), so it would add nothing to the key. Choose the right file.');
+        return;
+      }
       onPick(file);
       desc.textContent = file.name;
       desc.className = 'picked';
@@ -203,8 +209,15 @@
         throw e;
       }
 
+      var asText = null, binaryAsText = false;
       if (mode === 'text') {
-        show('ok', new TextDecoder().decode(plain));
+        // Not UTF-8 means a file's ciphertext was pasted as text: hand the
+        // bytes over as a download rather than showing replacement marks.
+        try { asText = new TextDecoder('utf-8', { fatal: true }).decode(plain); } catch (eNotText) { asText = null; }
+        if (asText === null) { binaryAsText = true; outName = 'decrypted.bin'; }
+      }
+      if (asText !== null) {
+        show('ok', asText);
         $('out').classList.add('blur');
         $('out').title = 'Click to reveal';
         $('out').onclick = function () { this.classList.toggle('blur'); };
@@ -218,7 +231,9 @@
         // Revoke on a delay: Safari can cancel a download whose object URL is
         // revoked before the download has actually started.
         setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
-        show('ok', 'Decrypted successfully \u2014 downloaded as "' + outName + '".');
+        show('ok', binaryAsText
+          ? 'Decrypted successfully, but the result is not text \u2014 it looks like an encrypted file. Downloaded as "decrypted.bin"; rename it to what it was.'
+          : 'Decrypted successfully \u2014 downloaded as "' + outName + '".');
       }
       // Best-effort erase now that the plaintext has been handed off (the
       // Blob and TextDecoder both copy). Same posture as the main app.
